@@ -1,9 +1,0 @@
-*.bin
-*.hex
-*.elf
-*.swp
-*~
-*.o
-*.a
-.svn
-.depend
