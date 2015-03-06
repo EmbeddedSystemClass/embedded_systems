@@ -1,7 +1,7 @@
 # put your *.o targets here, make should handle the rest!
 # Modify for your mlib library location
 
-MYLIB=~/repo/mylib
+MYLIB=$(NP2_ROOT)/../../repo/mylib
 NP2_PATH=$(NP2_ROOT)/src/boards/netduinoplus2
 VCP_PATH=$(NP2_ROOT)/src/boards/netduinoplus2/usb/vcp
 USBCORE_PATH=$(NP2_ROOT)/src/Libraries/STM32_USB_Device_Library/Core
