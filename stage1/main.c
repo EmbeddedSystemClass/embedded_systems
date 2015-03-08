@@ -42,7 +42,7 @@ void main(void) {
 	/* Main processing loop */
   	while (1) {
 
-		//counter_value++;	//Increment counter
+		counter_value++;	//Increment counter
 
 		/****************** Display counter. ***************/
 		/* First, turn off each LED light bar segment
@@ -58,7 +58,7 @@ void main(void) {
 			//sxxxxxx_ledbar_set(counter_value);
 		//*/ 
 
-		write_value = ~write_value;
+		
 		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, write_value & 0x01);
 		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, write_value & 0x01);	//Write Digital 0 bit value
 		HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, write_value & 0x01);
@@ -69,6 +69,10 @@ void main(void) {
 		HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D7_PIN, write_value & 0x01);
 		HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D8_PIN, write_value & 0x01);
 		HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, write_value & 0x01);
+
+		s4295255_ledbar_set(0);
+
+		s4295255_ledbar_set(counter_value);
 
 		/* Toggle 'Keep Alive Indicator' BLUE LED */
 		BRD_LEDToggle();
