@@ -59,16 +59,16 @@ void main(void) {
 		//*/ 
 
 		
-		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, write_value & 0x01);	//Write Digital 0 bit value
-		HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D3_GPIO_PORT, BRD_D3_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D4_GPIO_PORT, BRD_D4_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D5_GPIO_PORT, BRD_D5_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D6_GPIO_PORT, BRD_D6_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D7_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D8_PIN, write_value & 0x01);
-		HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, write_value & 0x01);
+		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0 & 0x01);	//Write Digital 0 bit value
+		HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D3_GPIO_PORT, BRD_D3_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D4_GPIO_PORT, BRD_D4_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D5_GPIO_PORT, BRD_D5_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D6_GPIO_PORT, BRD_D6_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D7_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D8_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0 & 0x01);
 
 		s4295255_ledbar_set(0);
 

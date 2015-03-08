@@ -85,44 +85,44 @@ extern void s4295255_ledbar_set(unsigned short value) {
 		*/
 
 
-		if ((value & (1 << 0)) == (1 << 0))	{
+		if ((value & (1 << 0)) != 0)	{
 				HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 1))	{
-				HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 1)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 2))	{
-				HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 2)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 3))	{
-				HAL_GPIO_WritePin(BRD_D3_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 3)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D3_GPIO_PORT, BRD_D3_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 4))	{
-				HAL_GPIO_WritePin(BRD_D4_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 4)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D4_GPIO_PORT, BRD_D4_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 5))	{
-				HAL_GPIO_WritePin(BRD_D5_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 5)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D5_GPIO_PORT, BRD_D5_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 6))	{
-				HAL_GPIO_WritePin(BRD_D6_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 6)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D6_GPIO_PORT, BRD_D6_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 7))	{
-				HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 7)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D7_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 8))	{
-				HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 8)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D8_PIN, 1 & 0x01);
 			}
 
-		if ((value & (1 << 0)) == (1 << 9))	{
-				HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
+		if ((value & (1 << 9)) != 0)	{
+				HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1 & 0x01);
 			}	
 			
 
