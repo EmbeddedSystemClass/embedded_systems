@@ -56,13 +56,27 @@ extern void s4295255_ledbar_init(void) {
 	/* __BRD_D1_GPIO_CLK(); */
 
   	/* Configure the all LED pins as outputs */
-	GPIO_InitStructure.Pin = BRD_D0_PIN | BRD_D1_PIN | BRD_D2_PIN | BRD_D3_PIN | BRD_D4_PIN | BRD_D5_PIN | BRD_D6_PIN | BRD_D7_PIN | BRD_D8_PIN | BRD_D9_PIN;				//Pin
+	GPIO_InitStructure.Pin =  BRD_D2_PIN | BRD_D3_PIN | BRD_D7_PIN | BRD_D8_PIN | BRD_D9_PIN;				//Pin
   	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;		//Output Mode
   	GPIO_InitStructure.Pull = GPIO_PULLDOWN;			//Enable Pull up, down or no pull resister
   	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
   	HAL_GPIO_Init(GPIOA, &GPIO_InitStructure);
- 	HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);	//Initialise Pin
+ 		//Initialise Pin
+
+	GPIO_InitStructure.Pin =  BRD_D4_PIN | BRD_D5_PIN | BRD_D6_PIN;				//Pin
+  	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;		//Output Mode
+  	GPIO_InitStructure.Pull = GPIO_PULLDOWN;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
+  	HAL_GPIO_Init(GPIOB, &GPIO_InitStructure);
+ 		//Initialise Pin
+
+
+	GPIO_InitStructure.Pin =  BRD_D0_PIN | BRD_D1_PIN;				//Pin
+  	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;		//Output Mode
+  	GPIO_InitStructure.Pull = GPIO_PULLDOWN;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
+  	HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+ 		//Initialise Pin
 	
 }
 

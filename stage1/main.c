@@ -22,11 +22,13 @@
 /* Private variables ---------------------------------------------------------*/
 uint16_t counter_value = 0;
 uint16_t press_counter_val = 0;
+__IO unsigned long delay_val = 0x7FFF00;
 
 /* Private function prototypes -----------------------------------------------*/
 void Hardware_init(void);
 void Delay(__IO unsigned long nCount);
 void exti_a2_interrupt_handler(void);
+
 
 /**
   * @brief  Main program - timer and press counter.
@@ -77,7 +79,7 @@ void main(void) {
 		/* Toggle 'Keep Alive Indicator' BLUE LED */
 		BRD_LEDToggle();
 
-    	Delay(0x7FFF00);	//Will delay for aprox 1s. Increasing the value will increase delay.
+    	Delay(delay_val);	//Will delay for aprox 1s. Increasing the value will increase delay.
 
 	}
 }
@@ -89,7 +91,7 @@ void main(void) {
   */
 void Hardware_init(void) {
 
-		
+	GPIO_InitTypeDef  GPIO_InitStructure;	
 
 	BRD_LEDInit();		//Initialise Blue LED
 	BRD_LEDOff();		//Turn off Blue LED
@@ -110,6 +112,23 @@ void Hardware_init(void) {
 
 	/* Configure A2 interrupt for Prac 1, Task 2 or 3 only */
 
+	__GPIOC_CLK_ENABLE();
+	
+	/* Set priority of external GPIO Interrupt [0 (HIGH priority) to 15(LOW priority)] */
+	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3 */
+	HAL_NVIC_SetPriority(BRD_A2_EXTI_IRQ, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0
+
+	//Enable external GPIO interrupt and interrupt vector for pin DO
+	NVIC_SetVector(BRD_A2_EXTI_IRQ, (uint32_t)&exti_a2_interrupt_handler);  
+	NVIC_EnableIRQ(BRD_A2_EXTI_IRQ);
+
+  	/* Configure D0 pin as pull down input */
+	GPIO_InitStructure.Pin = BRD_A2_PIN;				//Pin
+  	GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING;		//interrupt Mode
+  	GPIO_InitStructure.Pull = GPIO_PULLUP;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
+  	HAL_GPIO_Init(BRD_A1_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
+
 }
 
 /**
@@ -119,10 +138,37 @@ void Hardware_init(void) {
   */
 void Delay(__IO unsigned long nCount) {
   
+	debug_printf("Counter Value: %08x\n", counter_value);
+
+	
+	/*uint16_t x = counter_value;
+	int n;
+	for(n=0; n<8; n++)
+   {
+      if((x & 0x80) !=0)
+      {
+         debug_putc('1');
+      }
+      else
+      {
+         debug_putc('0');
+      }
+
+
+      
+      x = x<<1;
+   }
+
+	debug_flush();*/
+	
+
+
 	/* Delay a specific amount before returning */
 	while(nCount--)	{
   	}
 }
+
+
 
 /**
   * @brief  exti_a2 GPIO Interrupt handler
@@ -135,4 +181,6 @@ void exti_a2_interrupt_handler(void) {
 	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
 
 	/* Speed up the counter by reducing the delay value */
+
+	delay_val = ( delay_val/2 );
 }
