@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    stage1/main.c 
+  * @file    stage1-3/main.c 
   * @author  Mani Batra
   * @date    10-January-2015
   * @brief   Prac 1 Template C main file - BCD timer and press counter.
@@ -22,6 +22,7 @@
 /* Private variables ---------------------------------------------------------*/
 uint16_t counter_value = 0;
 uint16_t press_counter_val = 0;
+int output_val = 0xAA;
 __IO unsigned long delay_val = 0x7FFF00;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -39,28 +40,18 @@ void main(void) {
 
 	BRD_init();	//Initalise NP2
 	Hardware_init();	//Initalise hardware modules
-	int write_value = 0;
+
   	
 	/* Main processing loop */
   	while (1) {
 
-		counter_value++;	//Increment counter
-
-		/****************** Display counter. ***************/
-		/* First, turn off each LED light bar segment
-			write 0 to D0
-			Write 0 to D1
-			....
-			Write 0 to D9
-
-			Call sxxxxxx_ledbar_set(0)
-
-			then call
-	*/
-			//sxxxxxx_ledbar_set(counter_value);
-		//*/ 
-
 		
+
+		if(counter_value > 8) {
+
+			output_val = 0xAA;
+			counter_value = 0;
+		}
 		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, 0 & 0x01);
 		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0 & 0x01);	//Write Digital 0 bit value
 		HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, 0 & 0x01);
@@ -74,7 +65,10 @@ void main(void) {
 
 		s4295255_ledbar_set(0);
 
-		s4295255_ledbar_set(counter_value);
+		s4295255_ledbar_set(output_val);
+	
+		output_val = (output_val << 1);
+		counter_value++;
 
 		/* Toggle 'Keep Alive Indicator' BLUE LED */
 		BRD_LEDToggle();
@@ -138,32 +132,6 @@ void Hardware_init(void) {
   */
 void Delay(__IO unsigned long nCount) {
   
-	debug_printf("Counter Value: %08x\n", counter_value);
-	//int tick = HAL_GetTick();
-
-	//debug_printf("Tick Value: %d\n", tick);
-	/*uint16_t x = counter_value;
-	int n;
-	for(n=0; n<8; n++)
-   {
-      if((x & 0x80) !=0)
-      {
-         debug_putc('1');
-      }
-      else
-      {
-         debug_putc('0');
-      }
-
-
-      
-      x = x<<1;
-   }
-
-	debug_flush();*/
-	
-
-
 	/* Delay a specific amount before returning */
 	while(nCount--)	{
   	}
