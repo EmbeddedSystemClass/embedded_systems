@@ -139,8 +139,9 @@ void Hardware_init(void) {
 void Delay(__IO unsigned long nCount) {
   
 	debug_printf("Counter Value: %08x\n", counter_value);
+	//int tick = HAL_GetTick();
 
-	
+	//debug_printf("Tick Value: %d\n", tick);
 	/*uint16_t x = counter_value;
 	int n;
 	for(n=0; n<8; n++)
@@ -170,13 +171,16 @@ void Delay(__IO unsigned long nCount) {
 
 
 
+
+
 /**
   * @brief  exti_a2 GPIO Interrupt handler
   * @param  None.
   * @retval None
   */
 void exti_a2_interrupt_handler(void) {
-
+	
+	HAL_Delay(50); //Switch Debouncing 
 
 	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
 
