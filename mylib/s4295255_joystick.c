@@ -78,7 +78,12 @@ extern void s4295255_joystick_init(void) {
 
     HAL_ADC_Init(&AdcHandle);		//Initialise ADC
 
-	
+	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
+	AdcChanConfig.Rank         = 1;
+    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    AdcChanConfig.Offset       = 0;    
+
+	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
 	
 }
 
@@ -90,16 +95,19 @@ extern void s4295255_joystick_init(void) {
   * @param  axis
   * @retval X, Y or Z value
   */
-extern int s4295255_joystick_get(int axis) {
+extern uint16_t s4295255_joystick_get(int axis) {
 
 	//Get X, Y or Z value
 	/* Configure ADC Channel */
-	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
-	AdcChanConfig.Rank         = 1;
-    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    AdcChanConfig.Offset       = 0;    
+	
 
-	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
+	HAL_ADC_Start(&AdcHandle); // Start ADC conversion
+
+		//Wait for ADC Conversion to complete
+	while (HAL_ADC_PollForConversion(&AdcHandle, 10) != HAL_OK);
+    uint16_t adc_value = (uint16_t)(HAL_ADC_GetValue(&AdcHandle));
+	
+	return adc_value;
 
 }
 

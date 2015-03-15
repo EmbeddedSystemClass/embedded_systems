@@ -30,6 +30,6 @@
 /* Private function prototypes -----------------------------------------------*/
 
 extern void s4295255_joystick_init(void);
-extern int s4295255_joystick_get(int axis);
+extern uint16_t s4295255_joystick_get(int axis);
 #endif
 

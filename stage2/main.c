@@ -15,6 +15,7 @@
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
 #include "s4295255_ledbar.h"
+#include "s4295255_joystick.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -23,11 +24,13 @@
 TIM_HandleTypeDef TIM_Init;
 int count_interrupt;	//increment each time a timer interrupt occurs
 int write_value = 0;
-int value = 250;
+int value = 50;
+int high = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 void Hardware_init(void);
 void tim2_irqhandler (void);
+void Delay(__IO unsigned long nCount);
 
 
 /**
@@ -42,6 +45,25 @@ void main(void) {
 
   	/* Main processing loop waiting for interrupt */
   	while (1) {
+		
+		uint16_t adc_value = s4295255_joystick_get(0);
+		/* Print ADC conversion values */
+		debug_printf("ADC Value: %d\n\r", adc_value/40.95);
+
+		if(adc_value > 2001 && adc_value < 2015) {
+
+			high = 50;
+		} else {
+
+			high = (adc_value/40.95);
+
+			
+
+		}
+
+		BRD_LEDToggle();	//Toggle LED on/off
+		Delay(0x7FFF00);	//Delay function
+			
 	}
 }
 
@@ -61,6 +83,9 @@ void Hardware_init(void) {
 	__TIM2_CLK_ENABLE();
 
 	s4295255_ledbar_init();
+
+	s4295255_joystick_init();
+
 
 	/* Compute the prescaler value */
   	PrescalerValue = (uint16_t) ((SystemCoreClock /2)/500000) - 1;		//Set clock prescaler to 50kHz - SystemCoreClock is the system clock frequency.
@@ -87,6 +112,7 @@ void Hardware_init(void) {
 	/* Start Timer */
 	HAL_TIM_Base_Start_IT(&TIM_Init);
 
+	
 
 }
 
@@ -106,23 +132,26 @@ void tim2_irqhandler (void) {
 
 	
 	//Toggle LED every second (timer interrupt should occur every 1ms)
-	if (count_interrupt == value) {
+	if (count_interrupt > value) {
 
-
-		BRD_LEDToggle();
 		write_value = ~write_value;
-		if((write_value & 0x01) == 1) { value = 80;}
-		if((write_value & 0x01) == 0) { value = 20; }
+		if((write_value & 0x01) == 1) { value = high - 1;}
+		if((write_value & 0x01) == 0) { value = (99 - high); }
 		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, write_value & 0x01);
 		count_interrupt = 0;
 	} 
 
-	
+
 		 
 		
 	count_interrupt++;		//increment counter, when the interrupt occurs
 	
 
+}
+
+void Delay(__IO unsigned long nCount) {
+  	while(nCount--) {
+  	}
 }
 
 
