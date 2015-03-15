@@ -36,8 +36,13 @@
   * @brief  Initialise the joystick.
   * @param  None
   * @retval None
+
   */
-extern void s4295255_joystick_init(void) {
+
+ADC_HandleTypeDef AdcHandle;
+ADC_ChannelConfTypeDef AdcChanConfig;
+
+extern void s4295255_joystick_init(void) { 
 	GPIO_InitTypeDef GPIO_InitStructure;	
 	
 	BRD_LEDInit();		//Initialise Blue LED
@@ -73,13 +78,7 @@ extern void s4295255_joystick_init(void) {
 
     HAL_ADC_Init(&AdcHandle);		//Initialise ADC
 
-	/* Configure ADC Channel */
-	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
-	AdcChanConfig.Rank         = 1;
-    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    AdcChanConfig.Offset       = 0;    
-
-	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
+	
 	
 }
 
@@ -94,6 +93,13 @@ extern void s4295255_joystick_init(void) {
 extern int s4295255_joystick_get(int axis) {
 
 	//Get X, Y or Z value
+	/* Configure ADC Channel */
+	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
+	AdcChanConfig.Rank         = 1;
+    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    AdcChanConfig.Offset       = 0;    
+
+	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
 
 }
 
