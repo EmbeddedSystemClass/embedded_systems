@@ -10,6 +10,7 @@
   *  
   */ 
 
+
 /* Includes ------------------------------------------------------------------*/
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
@@ -19,6 +20,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef TIM_Init;
@@ -48,7 +50,7 @@ void main(void) {
 		
 		uint16_t adc_value = s4295255_joystick_get(0);
 		/* Print ADC conversion values */
-		debug_printf("ADC Value: %d\n\r", adc_value/40.95);
+		//debug_printf("ADC Value: %d\n\r", led_value);
 
 		if(adc_value > 2001 && adc_value < 2015) {
 
@@ -60,6 +62,36 @@ void main(void) {
 			
 
 		}
+
+		unsigned short led_value = 0;
+
+		int shift = high/10;
+
+		if(high % 10 == 9) {
+
+			shift++;
+		}
+
+
+		while(shift > 0) {
+
+			led_value = led_value | 1;
+			led_value = led_value << 1;
+			shift--;
+		}
+
+		HAL_GPIO_WritePin(BRD_D2_GPIO_PORT, BRD_D2_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D3_GPIO_PORT, BRD_D3_PIN, 0 & 0x01);	//Write Digital 0 bit value
+		HAL_GPIO_WritePin(BRD_D4_GPIO_PORT, BRD_D4_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D5_GPIO_PORT, BRD_D5_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D6_GPIO_PORT, BRD_D6_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D7_GPIO_PORT, BRD_D7_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D8_GPIO_PORT, BRD_D8_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D10_GPIO_PORT, BRD_D10_PIN, 0 & 0x01);
+		HAL_GPIO_WritePin(BRD_D11_GPIO_PORT, BRD_D11_PIN, 0 & 0x01);
+
+		s4295255_ledbar_set(led_value);
 
 		BRD_LEDToggle();	//Toggle LED on/off
 		Delay(0x7FFF00);	//Delay function
@@ -137,7 +169,7 @@ void tim2_irqhandler (void) {
 		write_value = ~write_value;
 		if((write_value & 0x01) == 1) { value = high - 1;}
 		if((write_value & 0x01) == 0) { value = (99 - high); }
-		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, write_value & 0x01);
+		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, write_value & 0x01);
 		count_interrupt = 0;
 	} 
 
