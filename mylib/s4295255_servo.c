@@ -43,48 +43,55 @@ ADC_HandleTypeDef AdcHandle;
 ADC_ChannelConfTypeDef AdcChanConfig;
 
 extern void s4295255_servo_init(void) { 
-	GPIO_InitTypeDef GPIO_InitStructure;	
-	
+	GPIO_InitTypeDef GPIO_InitStructure;
+	TIM_OC_InitTypeDef PWMConfig;
+	TIM_HandleTypeDef TIM_Init;
+
+	uint16_t PrescalerValue = 0;
+
 	BRD_LEDInit();		//Initialise Blue LED
 	BRD_LEDOff();		//Turn off Blue LED
 
-	/* Enable A0 GPIO Clock */
-	__BRD_A0_GPIO_CLK();
+  	/* Timer 3 clock enable */
+  	__TIM3_CLK_ENABLE();
 
-	/* Configure A0 as analog input */
-  	GPIO_InitStructure.Pin = BRD_A0_PIN;			//Set A0 pin
-  	GPIO_InitStructure.Mode = GPIO_MODE_ANALOG;		//Set to Analog input
-  	GPIO_InitStructure.Pull = GPIO_NOPULL ;			//No Pull up resister
+  	/* Enable the D0 Clock */
+  	__BRD_D0_GPIO_CLK();
 
-  	HAL_GPIO_Init(BRD_A0_GPIO_PORT, &GPIO_InitStructure);	//Initialise AO
+  	/* Configure the D0 pin with TIM3 output*/
+	GPIO_InitStructure.Pin = BRD_D0_PIN;				//Pin
+  	GPIO_InitStructure.Mode =GPIO_MODE_AF_PP; 		//Set mode to be output alternate
+  	GPIO_InitStructure.Pull = GPIO_NOPULL;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
+	GPIO_InitStructure.Alternate = GPIO_AF2_TIM3;	//Set alternate function to be timer 2
+  	HAL_GPIO_Init(BRD_D0_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 
-	/* Enable ADC1 clock */
-	__ADC1_CLK_ENABLE();
+	/* Compute the prescaler value. SystemCoreClock = 168000000 - set for 50Khz clock */
+  	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 50000) - 1;
 
-    /* Configure ADC1 */
-    AdcHandle.Instance = (ADC_TypeDef *)(ADC1_BASE);						//Use ADC1
-    AdcHandle.Init.ClockPrescaler        = ADC_CLOCKPRESCALER_PCLK_DIV2;	//Set clock prescaler
-    AdcHandle.Init.Resolution            = ADC_RESOLUTION12b;				//Set 12-bit data resolution
-    AdcHandle.Init.ScanConvMode          = DISABLE;
-    AdcHandle.Init.ContinuousConvMode    = DISABLE;
-    AdcHandle.Init.DiscontinuousConvMode = DISABLE;
-    AdcHandle.Init.NbrOfDiscConversion   = 0;
-    AdcHandle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;	//No Trigger
-    AdcHandle.Init.ExternalTrigConv      = ADC_EXTERNALTRIGCONV_T1_CC1;		//No Trigger
-    AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;				//Right align data
-    AdcHandle.Init.NbrOfConversion       = 1;
-    AdcHandle.Init.DMAContinuousRequests = DISABLE;
-    AdcHandle.Init.EOCSelection          = DISABLE;
-
-    HAL_ADC_Init(&AdcHandle);		//Initialise ADC
-
-	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
-	AdcChanConfig.Rank         = 1;
-    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    AdcChanConfig.Offset       = 0;    
-
-	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
+	/* Configure Timer settings */
+	TIM_Init.Instance = TIM3;					//Enable Timer 2
+  	TIM_Init.Init.Period = 2*50000/10;			//Set for 200ms (5Hz) period
+  	TIM_Init.Init.Prescaler = PrescalerValue;	//Set presale value
+  	TIM_Init.Init.ClockDivision = 0;			//Set clock division
+	TIM_Init.Init.RepetitionCounter = 0; 		// Set Reload Value
+  	TIM_Init.Init.CounterMode = TIM_COUNTERMODE_UP;	//Set timer to count up.
 	
+	/* PWM Mode configuration for Channel 2 - set pulse width*/
+	PWMConfig.OCMode       = TIM_OCMODE_PWM1;	//Set PWM MODE (1 or 2 - NOT CHANNEL)
+    PWMConfig.Pulse        = 2*50000/100;		//1ms pulse width to 10ms
+    PWMConfig.OCPolarity   = TIM_OCPOLARITY_HIGH;
+    PWMConfig.OCNPolarity  = TIM_OCNPOLARITY_HIGH;
+    PWMConfig.OCFastMode   = TIM_OCFAST_DISABLE;
+    PWMConfig.OCIdleState  = TIM_OCIDLESTATE_RESET;
+    PWMConfig.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+	/* Enable PWM for Timer 3, channel 2 */
+	HAL_TIM_PWM_Init(&TIM_Init);	
+	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_2);	
+
+	/* Start PWM */
+	HAL_TIM_PWM_Start(&TIM_Init, TIM_CHANNEL_2);
 }
 
 /**
@@ -97,17 +104,7 @@ extern void s4295255_servo_init(void) {
   */
 extern void servo_setangle(int angle) {
 
-	//Get X, Y or Z value
-	/* Configure ADC Channel */
-	
-
-	HAL_ADC_Start(&AdcHandle); // Start ADC conversion
-
-		//Wait for ADC Conversion to complete
-	while (HAL_ADC_PollForConversion(&AdcHandle, 10) != HAL_OK);
-    uint16_t adc_value = (uint16_t)(HAL_ADC_GetValue(&AdcHandle));
-	
-	return adc_value;
+	//set the servo angle
 
 }
 
