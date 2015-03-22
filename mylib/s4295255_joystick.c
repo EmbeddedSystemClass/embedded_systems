@@ -31,7 +31,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
-
+void exti_a2_interrupt_handler(void);
 /**
   * @brief  Initialise the joystick.
   * @param  None
@@ -50,6 +50,7 @@ extern void s4295255_joystick_init(void) {
 
 	/* Enable A0 GPIO Clock */
 	__BRD_A0_GPIO_CLK();
+
 
 	/* Configure A0 as analog input */
   	GPIO_InitStructure.Pin = BRD_A0_PIN;			//Set A0 pin
@@ -84,6 +85,26 @@ extern void s4295255_joystick_init(void) {
     AdcChanConfig.Offset       = 0;    
 
 	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
+
+
+	/* Configure A2 interrupt for Prac 1, Task 2 or 3 only */
+	
+	
+	
+	/* Set priority of external GPIO Interrupt [0 (HIGH priority) to 15(LOW priority)] */
+	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3 */
+	HAL_NVIC_SetPriority(BRD_A2_EXTI_IRQ, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0
+
+	//Enable external GPIO interrupt and interrupt vector for pin DO
+	NVIC_SetVector(BRD_A2_EXTI_IRQ, (uint32_t)&exti_a2_interrupt_handler);  
+	NVIC_EnableIRQ(BRD_A2_EXTI_IRQ);
+
+  	/* Configure D0 pin as pull down input */
+	GPIO_InitStructure.Pin = BRD_A2_PIN;				//Pin
+  	GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING;		//interrupt Mode
+  	GPIO_InitStructure.Pull = GPIO_PULLUP;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
+  	HAL_GPIO_Init(BRD_A1_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 	
 }
 
@@ -110,4 +131,5 @@ extern uint16_t s4295255_joystick_get(int axis) {
 	return adc_value;
 
 }
+
 
