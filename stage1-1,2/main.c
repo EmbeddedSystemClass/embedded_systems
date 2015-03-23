@@ -1,11 +1,10 @@
 /**
   ******************************************************************************
-  * @file    stage1/main.c 
+  * @file    stage1-1,2/main.c 
   * @author  Mani Batra
-  * @date    10-January-2015
-  * @brief   Prac 1 Template C main file - BCD timer and press counter.
-  *			 NOTE: THIS CODE IS PSEUDOCODE AND DOES NOT COMPILE. 
-  *				   GUIDELINES ARE GIVEN AS COMMENTS.
+  * @date    10-March-2015
+  * @brief   Prac 1  C main file - BCD timer and press counter.
+  *			
   *			 REFERENCES: ex1_led, ex2_gpio, ex3_gpio, ex11_character
   ******************************************************************************
   */ 
@@ -46,20 +45,7 @@ void main(void) {
 
 		counter_value++;	//Increment counter
 
-		/****************** Display counter. ***************/
-		/* First, turn off each LED light bar segment
-			write 0 to D0
-			Write 0 to D1
-			....
-			Write 0 to D9
-
-			Call sxxxxxx_ledbar_set(0)
-
-			then call
-	*/
-			//sxxxxxx_ledbar_set(counter_value);
-		//*/ 
-
+	
 		
 		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, 0 & 0x01);
 		HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0 & 0x01);	//Write Digital 0 bit value
@@ -96,20 +82,11 @@ void Hardware_init(void) {
 	BRD_LEDInit();		//Initialise Blue LED
 	BRD_LEDOff();		//Turn off Blue LED
 
-	/* Initialise LEDBar
-       Call
-	   sxxxxxx_ledbar_init();
-
-	*/
-
+	
+	//initialise the ledbar
 	s4295255_ledbar_init();
 
-	/* Configure the GPIO_D1 pin
 	
-	 	.... 
-
-		Configure the GPIO_D9 pin */
-
 	/* Configure A2 interrupt for Prac 1, Task 2 or 3 only */
 
 	__GPIOC_CLK_ENABLE();
@@ -118,7 +95,7 @@ void Hardware_init(void) {
 	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3 */
 	HAL_NVIC_SetPriority(BRD_A2_EXTI_IRQ, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0
 
-	//Enable external GPIO interrupt and interrupt vector for pin DO
+	//Enable external GPIO interrupt and interrupt vector for pin A2
 	NVIC_SetVector(BRD_A2_EXTI_IRQ, (uint32_t)&exti_a2_interrupt_handler);  
 	NVIC_EnableIRQ(BRD_A2_EXTI_IRQ);
 
@@ -139,28 +116,6 @@ void Hardware_init(void) {
 void Delay(__IO unsigned long nCount) {
   
 	debug_printf("Counter Value: %08x\n", counter_value);
-	//int tick = HAL_GetTick();
-
-	//debug_printf("Tick Value: %d\n", tick);
-	/*uint16_t x = counter_value;
-	int n;
-	for(n=0; n<8; n++)
-   {
-      if((x & 0x80) !=0)
-      {
-         debug_putc('1');
-      }
-      else
-      {
-         debug_putc('0');
-      }
-
-
-      
-      x = x<<1;
-   }
-
-	debug_flush();*/
 	
 
 
@@ -180,11 +135,13 @@ void Delay(__IO unsigned long nCount) {
   */
 void exti_a2_interrupt_handler(void) {
 	
-	HAL_Delay(50); //Switch Debouncing 
-
-	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
 
 	/* Speed up the counter by reducing the delay value */
 
 	delay_val = ( delay_val/2 );
+
+	Delay(0x4C4B40); //Switch Debouncing 	
+
+	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
+
 }

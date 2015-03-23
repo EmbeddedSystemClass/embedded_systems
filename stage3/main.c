@@ -1,10 +1,9 @@
 /**
   ******************************************************************************
-  * @file    ex6_pwm/main.c 
-  * @author  MDS
-  * @date    02022015
-  * @brief   Enable the PWM output on pin DO.
-  *			 See Section 18 (TIM3), P576 of the STM32F4xx Reference Manual.
+  * @file    stage3/main.c 
+  * @author  Mani Batra
+  * @date    019032015
+  * @brief   Control the pan of the servo motor by generating the PWM on D2
   ******************************************************************************
   *  
   */ 
@@ -16,18 +15,18 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-//#define CONSOLE 
+//#define CONSOLE //Uncomment to use the console as direction provider, stage 3, design task 2
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
 void Hardware_init();
-//void exti_a2_interrupt_handler(void);
 
 
 
-int angle = 0;
-int direction = 1;
+
+int angle = 0; //angle of the servo
+int direction = 1;  //direction the servo will move in if controlled from console
 
 /**
   * @brief  Main program
@@ -45,7 +44,7 @@ void main(void) {
   	while (1) {
 
 #ifdef CONSOLE
-	/* Receive characters using getc */
+	/* Receive characters using getc, and set direction */
 		RxChar = debug_getc();
 
 		if (RxChar != '\0') {
@@ -62,7 +61,7 @@ void main(void) {
 
 		}
 #endif
-
+			//recieve joystick values
 		uint16_t adc_value = s4295255_joystick_get(0);
 		/* Print ADC conversion values */
 		//debug_printf("ADC Value: %d\n", angle);
@@ -120,11 +119,16 @@ void Delay(__IO unsigned long nCount) {
   	}
 }
 
+/**
+  * @brief  exti interrupt Function for A2.
 
+  * @param  nCount:specifies the Delay time length.
+  * @retval None
+  */
 void exti_a2_interrupt_handler(void) {
 	
 
-	
+	//change the angle by 10 deg
 	angle = angle + (direction*10);
 
 	if(angle < -90) {

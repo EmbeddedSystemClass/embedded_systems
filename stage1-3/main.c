@@ -2,10 +2,9 @@
   ******************************************************************************
   * @file    stage1-3/main.c 
   * @author  Mani Batra
-  * @date    10-January-2015
-  * @brief   Prac 1 Template C main file - BCD timer and press counter.
-  *			 NOTE: THIS CODE IS PSEUDOCODE AND DOES NOT COMPILE. 
-  *				   GUIDELINES ARE GIVEN AS COMMENTS.
+  * @date    10-March-2015
+  * @brief   Prac 1 C main file - BCD timer and press counter.
+  *			 
   *			 REFERENCES: ex1_led, ex2_gpio, ex3_gpio, ex11_character
   ******************************************************************************
   */ 
@@ -67,7 +66,7 @@ void main(void) {
 
 		s4295255_ledbar_set(output_val);
 	
-		output_val = (output_val << 1);
+		output_val = (output_val << 1); //shifting the value to generate the pattern
 		counter_value++;
 
 		/* Toggle 'Keep Alive Indicator' BLUE LED */
@@ -90,21 +89,9 @@ void Hardware_init(void) {
 	BRD_LEDInit();		//Initialise Blue LED
 	BRD_LEDOff();		//Turn off Blue LED
 
-	/* Initialise LEDBar
-       Call
-	   sxxxxxx_ledbar_init();
-
-	*/
 
 	s4295255_ledbar_init();
 
-	/* Configure the GPIO_D1 pin
-	
-	 	.... 
-
-		Configure the GPIO_D9 pin */
-
-	/* Configure A2 interrupt for Prac 1, Task 2 or 3 only */
 
 	__GPIOC_CLK_ENABLE();
 	
@@ -112,7 +99,7 @@ void Hardware_init(void) {
 	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3 */
 	HAL_NVIC_SetPriority(BRD_A2_EXTI_IRQ, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0
 
-	//Enable external GPIO interrupt and interrupt vector for pin DO
+	//Enable external GPIO interrupt and interrupt vector for pin A2
 	NVIC_SetVector(BRD_A2_EXTI_IRQ, (uint32_t)&exti_a2_interrupt_handler);  
 	NVIC_EnableIRQ(BRD_A2_EXTI_IRQ);
 
@@ -148,11 +135,13 @@ void Delay(__IO unsigned long nCount) {
   */
 void exti_a2_interrupt_handler(void) {
 	
-	HAL_Delay(50); //Switch Debouncing 
-
-	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
 
 	/* Speed up the counter by reducing the delay value */
 
 	delay_val = ( delay_val/2 );
+
+	Delay(0x4C4B40); //Switch Debouncing 	
+
+	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
+
 }

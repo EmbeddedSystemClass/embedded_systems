@@ -15,8 +15,9 @@
  ******************************************************************************   
  *     REVISION HISTORY
  ******************************************************************************
- * 1. 3/3/2015 - Created
- * 2. 10/3/2015 – Added functionality to set function.  
+ * 1. 19/3/2015 - Created
+ * 2. 19/3/2015 – Added functionality to init function. 
+ * 3. 23/3/2015 - Added functionality to the set angle function
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -64,14 +65,14 @@ extern void s4295255_servo_init(void) {
   	GPIO_InitStructure.Mode =GPIO_MODE_AF_PP; 		//Set mode to be output alternate
   	GPIO_InitStructure.Pull = GPIO_NOPULL;			//Enable Pull up, down or no pull resister
   	GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;			//Pin latency
-	GPIO_InitStructure.Alternate = GPIO_AF1_TIM2;	//Set alternate function to be timer 3
+	GPIO_InitStructure.Alternate = GPIO_AF1_TIM2;	//Set alternate function to be timer 2
   	HAL_GPIO_Init(BRD_D2_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 
 	/* Compute the prescaler value. SystemCoreClock = 168000000 - set for 500Khz clock */
   	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 500000) - 1;
 
 	/* Configure Timer settings */
-	TIM_Init.Instance = TIM2;					//Enable Timer 3
+	TIM_Init.Instance = TIM2;					//Enable Timer 2
   	TIM_Init.Init.Period = 2*500000/100;			//Set for 20ms (50Hz) period
   	TIM_Init.Init.Prescaler = PrescalerValue;	//Set presale value
   	TIM_Init.Init.ClockDivision = 0;			//Set clock division
@@ -102,7 +103,7 @@ extern void s4295255_servo_init(void) {
   */
 extern void s4295255_servo_setangle(int angle) {
 
-	//set the servo angle
+	//converting the angle range -90 to +90 TO 0 to 180
 
 	int p_angle;
 
@@ -120,10 +121,10 @@ extern void s4295255_servo_setangle(int angle) {
 
 	}
 
-
-	PWMConfig.Pulse = ((1/90.0*p_angle) + 0.45)*500000/1000;		//1ms pulse width to 10ms
+	//get the required pulse width
+	PWMConfig.Pulse = ((1/90.0*p_angle) + 0.45)*500000/1000;	
 	/* Enable PWM for Timer 2, channel 4 */
-		HAL_TIM_PWM_Init(&TIM_Init);	
+	HAL_TIM_PWM_Init(&TIM_Init);	
 	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_4);	
 
 

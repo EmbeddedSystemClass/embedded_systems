@@ -16,7 +16,8 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 3/3/2015 - Created
- * 2. 10/3/2015 – Added functionality to set function.  
+ * 2. 10/3/2015 – Added functionality to set function.
+ * 2. 20/3/2015 - Added functionality to work with Stage3.   
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -27,6 +28,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+//#define STAGE2   //uncomment when using Stage 2 or a program that doesnt take input from Z axis
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
@@ -131,5 +133,11 @@ extern uint16_t s4295255_joystick_get(int axis) {
 	return adc_value;
 
 }
+
+#ifdef STAGE2 
+void exti_a2_interrupt_handler(void){
+
+}
+#endif
 
 

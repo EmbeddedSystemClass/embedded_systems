@@ -14,8 +14,9 @@
  ******************************************************************************   
  *     REVISION HISTORY
  ******************************************************************************
- * 1. 3/3/2015 - Created
- * 2. 10/3/2015 – Added functionality to set function.  
+ * 1. 19/3/2015 - Created
+ * 2. 19/3/2015 – Added functionality to init function. 
+ * 3. 23/3/2015 - Added functionality to the set angle function
  */
 
 #ifndef S4295255_SERVO_H

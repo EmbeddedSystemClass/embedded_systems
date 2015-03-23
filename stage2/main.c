@@ -1,11 +1,9 @@
 /**
   ******************************************************************************
-  * @file    ex5_timer_interrupt.c 
-  * @author  MDS
-  * @date    02022015
-  * @brief   Enable Timer 2 update compare interrupt. Use interrupt to flash
-  *			 LED every second.
-  *			 See Section 18 (TIM2), P576 of the STM32F4xx Reference Manual.
+  * @file    stage2-main.c 
+  * @author  Mani Batra
+  * @date    017032015
+  * @brief  Generate the required duty cycle wave accroding to the joystich value. 
   ******************************************************************************
   *  
   */ 
@@ -26,8 +24,8 @@
 TIM_HandleTypeDef TIM_Init;
 int count_interrupt;	//increment each time a timer interrupt occurs
 int write_value = 0;
-int value = 50;
-int high = 0;
+int value = 50; //value to show the period of the wave function
+int high = 0;  //denotes to the fraction for which the wave is high
 
 /* Private function prototypes -----------------------------------------------*/
 void Hardware_init(void);
@@ -48,6 +46,7 @@ void main(void) {
   	/* Main processing loop waiting for interrupt */
   	while (1) {
 		
+		//get the value from the joystick
 		uint16_t adc_value = s4295255_joystick_get(0);
 		/* Print ADC conversion values */
 		//debug_printf("ADC Value: %d\n\r", led_value);
@@ -63,6 +62,7 @@ void main(void) {
 
 		}
 
+		//generate the pattern to display on the ledbar
 		unsigned short led_value = 0;
 
 		int shift = high/10;
@@ -163,7 +163,7 @@ void tim2_irqhandler (void) {
 		HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, write_value & 0x01);*/
 
 	
-	//Toggle LED every second (timer interrupt should occur every 1ms)
+	//Toggle the state of the wave from high to low depending on the value required
 	if (count_interrupt > value) {
 
 		write_value = ~write_value;

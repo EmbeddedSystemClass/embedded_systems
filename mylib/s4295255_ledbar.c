@@ -42,14 +42,7 @@ extern void s4295255_ledbar_init(void) {
 
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
-	/* Configure the GPIO_D0 pin
-	
-	 	.... 
-
-		Configure the GPIO_D9 pin 
-    */
-
-	/* Enable the D0 & D1 Clock */
+	/* Enable the Clocks */
   	__GPIOA_CLK_ENABLE();
 	__GPIOB_CLK_ENABLE();
 	__GPIOC_CLK_ENABLE();
@@ -103,7 +96,7 @@ extern void s4295255_ledbar_set(unsigned short value) {
 
 		if ((value & (1 << 0)) != 0)	{
 				HAL_GPIO_WritePin(BRD_D0_GPIO_PORT, BRD_D0_PIN, 1 & 0x01);
-			}
+			} 
 
 		if ((value & (1 << 1)) != 0)	{
 				HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 1 & 0x01);
