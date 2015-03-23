@@ -35,10 +35,31 @@ int direction = 1;
   */
 void main(void) {
 
+
+	char RxChar;
+
 	BRD_init();	//Initalise NP2
 	Hardware_init();	//Initalise hardware modules
 
   	while (1) {
+
+
+	/* Receive characters using getc */
+		RxChar = debug_getc();
+
+		if (RxChar != '\0') {
+
+			if(RxChar == 'p') {
+
+				direction = 1;
+
+			} else if(RxChar == 'n') {
+
+				direction = -1;
+
+			}
+
+		}
 
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
     	Delay(0x7FFF00);	//Delay function
