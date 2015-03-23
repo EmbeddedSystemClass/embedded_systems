@@ -16,6 +16,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+//#define CONSOLE 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -43,7 +44,7 @@ void main(void) {
 
   	while (1) {
 
-
+#ifdef CONSOLE
 	/* Receive characters using getc */
 		RxChar = debug_getc();
 
@@ -60,9 +61,37 @@ void main(void) {
 			}
 
 		}
+#endif
+
+		uint16_t adc_value = s4295255_joystick_get(0);
+		/* Print ADC conversion values */
+		//debug_printf("ADC Value: %d\n", angle);
+
+		if(adc_value < 2001) {
+
+			angle = angle - 1;
+			if(angle < -90) {
+
+				angle = -90;
+
+			}
+			s4295255_servo_setangle(angle);
+			
+		} else if(adc_value > 2020) {
+
+			angle = angle + 1;
+			if(angle > 90) {
+
+				angle = 90;
+
+			}
+			
+			s4295255_servo_setangle(angle);
+
+		}
 
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
-    	Delay(0x7FFF00);	//Delay function
+    	Delay(0x7FFF00/10);	//Delay function
 	}
 }
 
