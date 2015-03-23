@@ -17,7 +17,8 @@
  ******************************************************************************
  * 1. 3/3/2015 - Created
  * 2. 10/3/2015 – Added functionality to set function.
- * 2. 20/3/2015 - Added functionality to work with Stage3.   
+ * 3. 20/3/2015 - Added functionality to work with Stage3.  
+ * 4. 24/3/2015 - Added functionality to get value from arbitrary axis in get  
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -55,7 +56,7 @@ extern void s4295255_joystick_init(void) {
 
 
 	/* Configure A0 as analog input */
-  	GPIO_InitStructure.Pin = BRD_A0_PIN;			//Set A0 pin
+  	GPIO_InitStructure.Pin = BRD_A0_PIN | BRD_A1_PIN;			//Set A0 pin and A1 pin 
   	GPIO_InitStructure.Mode = GPIO_MODE_ANALOG;		//Set to Analog input
   	GPIO_InitStructure.Pull = GPIO_NOPULL ;			//No Pull up resister
 
@@ -81,12 +82,7 @@ extern void s4295255_joystick_init(void) {
 
     HAL_ADC_Init(&AdcHandle);		//Initialise ADC
 
-	AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
-	AdcChanConfig.Rank         = 1;
-    AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-    AdcChanConfig.Offset       = 0;    
-
-	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
+	
 
 
 	/* Configure A2 interrupt for Prac 1, Task 2 or 3 only */
@@ -122,6 +118,32 @@ extern uint16_t s4295255_joystick_get(int axis) {
 
 	//Get X, Y or Z value
 	/* Configure ADC Channel */
+
+	if(axis == 0) {
+
+		AdcChanConfig.Channel = BRD_A0_ADC_CHAN;							//Use AO pin
+		AdcChanConfig.Rank         = 1;
+    	AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    	AdcChanConfig.Offset       = 0; 
+   
+	} else if(axis == 1) {
+
+		AdcChanConfig.Channel = BRD_A1_ADC_CHAN;							//Use AO pin
+		AdcChanConfig.Rank         = 1;
+    	AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    	AdcChanConfig.Offset       = 0;  
+  
+	} else if(axis == 2) {
+
+		AdcChanConfig.Channel = BRD_A2_ADC_CHAN;							//Use AO pin
+		AdcChanConfig.Rank         = 1;
+    	AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+    	AdcChanConfig.Offset       = 0;  
+
+	}  	
+		
+
+	HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConfig);		//Initialise ADC channel
 	
 
 	HAL_ADC_Start(&AdcHandle); // Start ADC conversion
