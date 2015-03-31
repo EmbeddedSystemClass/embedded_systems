@@ -17,9 +17,14 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define CHANNEL	40
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-static SPI_HandleTypeDef SpiHandle;
+
+uint8_t destination_addr[] = {0x12, 0x34, 0x56, 0x78, 0x90};
+uint8_t source_addr[] = {0x42, 0x95, 0x2, 0x55, 0x6};
+char packet_type = 0x20;
+char payload[7];
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
@@ -41,15 +46,19 @@ int main(void) {
 	/* Main Processing Loop */
     while (1) {
 
-		HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);	//Set Chip Select low
 
-		spi_sendbyte(0x07);										//Send status register address
-	
-		status = spi_sendbyte(0xFF);							//Send dummy byte, to read status register values			
-		debug_printf("nrf24L01 Status Register Value: %X ", status);	//See page 59 of nrf24l01plus datasheet for status register definition
-																//NOTE: default value of the status register is 0xE0		
-		debug_printf("\n\r");
-		HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);		//Set Chip Select high	
+		for(int i = 0; i < 7; i++){
+
+			payload[i] = debug_getc();
+			if(payload[i] = '\r') {
+				debug_printf("You pressed \"Enter\"\n");
+				break;
+			}
+		}
+
+		debug_printf("Sending Packet\n");
+
+		//hamming encoding and then send packet
 
     	BRD_LEDToggle();	//Toggle LED on/off
     	Delay(0x7FFF00);	//Delay function
@@ -64,7 +73,9 @@ int main(void) {
   */
 void HardwareInit() {
 	
-	
+	s4295255_radio_init();
+	s4295255_radio_settxaddress(destination_addr);
+	s4295255_radio_setchan(CHANNEL);
 }
 
 /**

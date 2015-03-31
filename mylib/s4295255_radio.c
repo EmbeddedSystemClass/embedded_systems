@@ -42,9 +42,9 @@
 #define NRF24L01P_TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-
+static SPI_HandleTypeDef SpiHandle;
 /* Private function prototypes -----------------------------------------------*/
-void write_to_buffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
+void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);
 uint8_t sendRecv_Byte(uint8_t byte);
 
@@ -153,8 +153,8 @@ extern void s4295255_radio_settxaddress(unsigned char *addr){
 	/* Set CE low for idle state */
 	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
 	
-	write_to_buffer(NRF24L01P_WRITE_REG | NRF24L01P_TX_ADDR, addr, 5);		// Writes TX_Address to nRF24L0
-	write_to_buffer(NRF24L01P_WRITE_REG | NRF24L01P_RX_ADDR_P0, addr, 5);	//NRF24L01P_TX_ADR_WIDTH);
+	writebuffer(NRF24L01P_WRITE_REG | NRF24L01P_TX_ADDR, addr, 5);		// Writes TX_Address to nRF24L0
+	writebuffer(NRF24L01P_WRITE_REG | NRF24L01P_RX_ADDR_P0, addr, 5);	//NRF24L01P_TX_ADR_WIDTH);
 
     write_to_register(NRF24L01P_EN_AA, 0x00);      							// Disable Auto.Ack
     write_to_register(NRF24L01P_EN_RXADDR, 0x01);  							// Enable Pipe0
@@ -167,7 +167,7 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket);
 extern void s4295255_radio_getpacket(unsigned char *txpacket);
 
 
-void write_to_buffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
+void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 	int i;
 
@@ -183,7 +183,7 @@ void write_to_buffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 	for (i = 0; i < buffer_len; i++) {
 		
 		/* Return the Byte read from the SPI bus */
-		HAL_SPI_TransmitReceive(&SpiHandle, buffer[i], &rxbyte, 1, 1);
+		sendRecv_Byte(buffer[i]);
 		rfDelay(0x100);	
 #ifdef DEBUG
 		debug_printf("%X ", buffer[i]);

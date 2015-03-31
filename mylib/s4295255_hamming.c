@@ -68,7 +68,7 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 	
 	out |= (p0 << 7);	//Put P0 into most significatn bit.
 
-	return(out)
+	//send the out bit 
 
 }
 extern void s4295255_hamming_decode(unsigned short hword);
