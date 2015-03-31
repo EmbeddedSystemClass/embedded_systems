@@ -35,13 +35,18 @@
 #define NRF24L01P_READ_REG        0x00	// Define read command to register
 #define NRF24L01P_EN_AA           0x01	// 'Enable Auto Acknowledgment' register address
 #define NRF24L01P_EN_RXADDR       0x02	// 'Enabled RX addresses' register address
+#define NRF24L01P_STATUS          0x07	// 'Status' register address
 #define NRF24L01P_WRITE_REG       0x20	// Define write command to register
 #define NRF24L01P_TX_ADDR         0x10	// 'TX address' register address
 #define NRF24L01P_RX_PW_P0        0x11	// 'RX payload width, pipe0' register address
 #define NRF24L01P_RX_ADDR_P0      0x0A	// 'RX address pipe0' register address
 
+#define NRF24L01P_RD_RX_PLOAD     0x61	// Define RX payload register address
 #define NRF24L01P_WR_TX_PLOAD     0xA0	// Define TX payload register address
+#define NRF24L01P_FLUSH_RX        0xE2	// Define flush RX register command
 #define NRF24L01P_TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
+
+#define NRF24L01P_RX_DR    0x40
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
@@ -169,7 +174,7 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 
 	write_to_register(NRF24L01P_CONFIG, 0x72);     // Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX.
     //nrf24l01plus_WriteRegister(NRF24L01P_FLUSH_TX, 0);                                  
-    writebuffer(NRF24L01P_WR_TX_PLOAD, tx_packet, NRF24L01P_TX_PLOAD_WIDTH);   // write playload to TX_FIFO
+    writebuffer(NRF24L01P_WR_TX_PLOAD, txpacket, NRF24L01P_TX_PLOAD_WIDTH);   // write playload to TX_FIFO
 
 	/* Generate 10us pulse on CE pin for transmission */
 	rfDelay(0x40);//rfDelay(0x100);
@@ -180,14 +185,38 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);; 
 
 }
-extern void s4295255_radio_getpacket(unsigned char *txpacket);
+extern void s4295255_radio_getpacket(unsigned char *txpacket){
+
+	int rec = 0;
+    unsigned char status = readRegister(NRF24L01P_STATUS);                  // read register STATUS's value
+
+#ifdef DEBUG
+	debug_printf("DEBUG:RCV packet status: %X\n\r", status);
+#endif
+
+	
+    //if((status & NRF24L01P_RX_DR) && !nrf24l01plus_rxFifoEmpty()) {    // if receive data ready interrupt and FIFO full.
+	if(status & NRF24L01P_RX_DR) {
+		rfDelay(0x100);
+        readBuffer(NRF24L01P_RD_RX_PLOAD, txpacket, NRF24L01P_TX_PLOAD_WIDTH);  // read playload to rx_buf
+        write_to_register(NRF24L01P_FLUSH_RX,0);                             // clear RX_FIFO
+        rec = 1; //can be used for debugging
+
+		HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
+		rfDelay(0x100);
+
+		write_to_register(NRF24L01P_STATUS, status);                  // clear RX_DR or TX_DS or MAX_RT interrupt flag
+    }  
+
+
+}
 
 
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 	int i;
 
-	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0)
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
 
 	sendRecv_Byte(NRF24L01P_WRITE_REG | reg_addr);
 
@@ -236,3 +265,49 @@ uint8_t sendRecv_Byte(uint8_t byte) {
 		
 	return rxbyte; 
 }
+
+
+uint8_t readRegister(uint8_t reg_addr) {
+
+	uint8_t rxbyte;
+
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
+
+	rxbyte = nrf24l01plus_spi_SendRecv_Byte(reg_addr);
+	rxbyte = nrf24l01plus_spi_SendRecv_Byte(0xFF);
+
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+		
+	return rxbyte; 
+}
+
+void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
+
+	int i;
+	
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
+
+	sendRecv_Byte(reg_addr);
+
+#ifdef DEBUG
+	debug_printf("DEBUG:RB ");
+#endif
+	for (i = 0; i < buffer_len; i++) {
+		
+		/* Return the Byte read from the SPI bus */
+		buffer[i] = sendRecv_Byte(0xFF);
+
+#ifdef DEBUG
+		debug_printf("%X ", buffer[i]);
+#endif
+
+	}
+
+#ifdef DEBUG
+	debug_printf("\n\r");
+#endif
+
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+		 
+}
+
