@@ -25,6 +25,7 @@
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
 #include "s4295255_ledbar.h"
+#include "s4295255_radio.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -68,7 +69,7 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 	
 	out |= (p0 << 7);	//Put P0 into most significatn bit.
 
-	//send the out bit 
+	s4295255_radio_sendpacket(out);//send the out packet
 
 }
 extern void s4295255_hamming_decode(unsigned short hword);

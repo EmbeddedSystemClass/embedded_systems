@@ -31,6 +31,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define NRF24L01P_CONFIG          0x00	// 'Config' register address
 #define NRF24L01P_READ_REG        0x00	// Define read command to register
 #define NRF24L01P_EN_AA           0x01	// 'Enable Auto Acknowledgment' register address
 #define NRF24L01P_EN_RXADDR       0x02	// 'Enabled RX addresses' register address
@@ -39,6 +40,7 @@
 #define NRF24L01P_RX_PW_P0        0x11	// 'RX payload width, pipe0' register address
 #define NRF24L01P_RX_ADDR_P0      0x0A	// 'RX address pipe0' register address
 
+#define NRF24L01P_WR_TX_PLOAD     0xA0	// Define TX payload register address
 #define NRF24L01P_TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -163,7 +165,21 @@ extern void s4295255_radio_settxaddress(unsigned char *addr){
 
 }
 
-extern void s4295255_radio_sendpacket(unsigned char *txpacket);
+extern void s4295255_radio_sendpacket(unsigned char *txpacket){
+
+	write_to_register(NRF24L01P_CONFIG, 0x72);     // Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX.
+    //nrf24l01plus_WriteRegister(NRF24L01P_FLUSH_TX, 0);                                  
+    writebuffer(NRF24L01P_WR_TX_PLOAD, tx_packet, NRF24L01P_TX_PLOAD_WIDTH);   // write playload to TX_FIFO
+
+	/* Generate 10us pulse on CE pin for transmission */
+	rfDelay(0x40);//rfDelay(0x100);
+	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
+	rfDelay(0x40);//rfDelay(0x100);
+    HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);	//Set CE pin low to enable TX mode
+	rfDelay(0x40*3);	//rfDelay(0x100);
+	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);; 
+
+}
 extern void s4295255_radio_getpacket(unsigned char *txpacket);
 
 

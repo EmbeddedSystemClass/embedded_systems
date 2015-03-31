@@ -21,8 +21,8 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
-uint8_t destination_addr[] = {0x12, 0x34, 0x56, 0x78, 0x90};
-uint8_t source_addr[] = {0x42, 0x95, 0x2, 0x55, 0x6};
+uint8_t destination_addr[] = {0x12, 0x34, 0x56, 0x78};
+uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56};
 char packet_type = 0x20;
 char payload[7];
 
@@ -59,6 +59,23 @@ int main(void) {
 		debug_printf("Sending Packet\n");
 
 		//hamming encoding and then send packet
+	
+		s4295255_hamming_encode(packet_type); //encode packet type
+
+		for(int i = 3; i >= 0; i--) {
+			s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
+		}
+
+		for(int i = 3; i >= 0; i--) {
+			s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
+		}
+
+		for(int i = 6; i >= 0; i--) {
+			s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
+		}
+
+		
+		
 
     	BRD_LEDToggle();	//Toggle LED on/off
     	Delay(0x7FFF00);	//Delay function
