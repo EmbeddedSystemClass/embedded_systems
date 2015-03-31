@@ -40,7 +40,7 @@
 
   */
 
-uint16_t s4295255_hamming_encode(unsigned char hbyte){
+extern void s4295255_hamming_encode(unsigned char hbyte){
 
 	uint8_t d0, d1, d2, d3;
 	uint8_t p0 = 0, h0, h1, h2;
