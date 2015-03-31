@@ -187,6 +187,8 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 }
 extern void s4295255_radio_getpacket(unsigned char *txpacket){
 
+	mode_rx();
+
 	int rec = 0;
     unsigned char status = readRegister(NRF24L01P_STATUS);                  // read register STATUS's value
 
@@ -309,5 +311,11 @@ void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 		 
+}
+
+extern void mode_rx(void) {
+
+    write_to_register(NRF24L01P_CONFIG, 0x73);	//0x0f     	// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:RX. 
+    HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);                            		// Set CE pin high to enable RX device
 }
 
