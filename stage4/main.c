@@ -20,11 +20,16 @@
 #define CHANNEL	40
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-
 uint8_t destination_addr[] = {0x12, 0x34, 0x56, 0x78};
 uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56};
 char packet_type = 0x20;
 char payload[7];
+uint8_t packetbuffer[32];	/* Packet buffer initialised to 32 bytes (max length) */
+unsigned char rec_packet_type;
+unsigned char rec_destination_address[4];
+unsigned char rec_source_address[4];
+unsigned char rec_payload[4];
+
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
@@ -74,7 +79,50 @@ int main(void) {
 			s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
 		}
 
+
+		s4295255_radio_getpacket(packetbuffer);
+
+		int ptr = 0;
+
+		rec_packet_type = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
+
+
+
+		for(int i = 0; i < 4; i++) {
+
+			rec_destination_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
+			if(rec_destination_address[i] != source_addr[3-i]){
+
+				ptr = 0;
+				break;
+
+			}
+
+		}
 		
+		if(ptr == 0) {
+
+			continue;
+		}
+
+		
+		for(int i = 0; i < 4; i++) {
+
+			rec_source_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
+		
+
+		}
+
+
+		for(int i = 0; i < 7; i++) {
+
+			rec_payload[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
+		
+
+		}
+
+
+		print_packet();		
 		
 
     	BRD_LEDToggle();	//Toggle LED on/off
@@ -118,5 +166,42 @@ uint8_t spi_sendbyte(uint8_t sendbyte) {
 void Delay(__IO unsigned long nCount) {
   while(nCount--) {
   }
+}
+
+
+void print_packet() {
+
+	debug_printf("Packet Type : %X\nDestination Address : ", rec_packet_type);
+	debug_flush();
+	
+	for(int i = 3 ; i >= 0; i--){ 
+		debug_printf(" %X", rec_destination_address[i]);
+		Delay(100);
+
+
+	}
+
+
+	debug_flush();
+
+	debug_printf("\nSource Address : ");
+
+	for(int i = 3 ; i >= 0; i--){ 
+		debug_printf(" %X", rec_source_address[i]);
+		Delay(100);
+
+	}
+
+	debug_printf("\nPayload : ");
+
+	for(int i = 6 ; i >= 0; i--){ 
+		debug_printf(" %X", rec_payload[i]);
+		Delay(100);
+
+	}
+
+	debug_printf("\n");
+	
+
 }
 
