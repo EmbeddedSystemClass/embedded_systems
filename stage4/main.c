@@ -14,6 +14,8 @@
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
+#include "s4295255_radio.h"
+#include "s4295255_hamming.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/

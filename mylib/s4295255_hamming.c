@@ -20,7 +20,7 @@
  */
 
 int error_count = 0;
-int corrected_count = 0;
+int error_corrected = 0;
 /* Includes ------------------------------------------------------------------*/
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
@@ -48,14 +48,14 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 	uint8_t p0 = 0, h0, h1, h2;
 	uint8_t z;
 	uint8_t out;
-	unint16_t packet_to_send; //2 bytes
+	uint16_t packet_to_send; //2 bytes
 
 	uint8_t in = hybte & 0xF;
 	
 	for(int i = 0; i < 2; i++){
 
 		if(i == 1) { 
-			in = in >> 4; //encode 4 MSBs
+			in = hbyte >> 4; //encode 4 MSBs
 		}
 	
 		/* extract bits */
@@ -99,7 +99,7 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 }
 extern unsigned char s4295255_hamming_decode(unsigned short hword){
 
-	unsigned char out_byte;
+
 	
 
 	unsigned char lsb = hamming_byte_decode(hword & 0xFF);
@@ -132,12 +132,12 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 	h0 = !!(hbyte & 0x10);
 	h1 = !!(hbyte & 0x20);
 	h2 = !!(hbyte & 0x40);
-	h3 = !!(hbyte & 0x80);
-	p0 = !!(hbyte & 0x108);
+	p0 = !!(hbyte & 0x80);
 
-	s0 = d1 ^ d2 ^ d3 ^ h0;
-	s1 = d0 ^ d2 ^ d3 ^ h1;
-	s2 = d0 ^ d1 ^ d3 ^ h2;
+
+	uint8_t s0 = d1 ^ d2 ^ d3 ^ h0;
+	uint8_t s1 = d0 ^ d2 ^ d3 ^ h1;
+	uint8_t s2 = d0 ^ d1 ^ d3 ^ h2;
 
 	s = s0 | (s1 << 1) | (s2 << 2);
 
@@ -233,9 +233,9 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 int check_parity(unsigned char hbyte) {
 
 	int p =0;
-	uint8_t p0 = !!(hbyte & 0x108);
+	uint8_t p0 = !!(hbyte & 0x80);
 
-	for (z = 0; z<7; z++)		
+	for (int z = 0; z<7; z++)		
 		p = p ^ !!(hbyte & (1 << z));
 
 
