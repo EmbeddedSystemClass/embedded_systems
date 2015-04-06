@@ -36,7 +36,7 @@ unsigned char rec_payload[4];
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
 void HardwareInit();
-uint8_t spi_sendbyte(uint8_t sendbyte);
+void print_packet();
 
 /**
   * @brief  Main program
@@ -53,8 +53,9 @@ int main(void) {
 	/* Main Processing Loop */
     while (1) {
 
+		int i = 0;
 
-		for(int i = 0; i < 7; i++){
+		for(i = 0; i < 7; i++){
 
 			payload[i] = debug_getc();
 			if(payload[i] = '\r') {
@@ -69,15 +70,15 @@ int main(void) {
 	
 		s4295255_hamming_encode(packet_type); //encode packet type
 
-		for(int i = 3; i >= 0; i--) {
+		for(i = 3; i >= 0; i--) {
 			s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
 		}
 
-		for(int i = 3; i >= 0; i--) {
+		for(i = 3; i >= 0; i--) {
 			s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
 		}
 
-		for(int i = 6; i >= 0; i--) {
+		for(i = 6; i >= 0; i--) {
 			s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
 		}
 
@@ -90,7 +91,7 @@ int main(void) {
 
 
 
-		for(int i = 0; i < 4; i++) {
+		for(i = 0; i < 4; i++) {
 
 			rec_destination_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
 			if(rec_destination_address[i] != source_addr[3-i]){
@@ -108,7 +109,7 @@ int main(void) {
 		}
 
 		
-		for(int i = 0; i < 4; i++) {
+		for(i = 0; i < 4; i++) {
 
 			rec_source_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
 		
@@ -116,7 +117,7 @@ int main(void) {
 		}
 
 
-		for(int i = 0; i < 7; i++) {
+		for(i = 0; i < 4; i++) {
 
 			rec_payload[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
 		
@@ -145,20 +146,7 @@ void HardwareInit() {
 	s4295255_radio_setchan(CHANNEL);
 }
 
-/**
-  * @brief  Send byte through SPI.
-  * @param  sendbyte: byte to be transmitted via SPI.
-  * @retval None
-  */
-uint8_t spi_sendbyte(uint8_t sendbyte) {
 
-	uint8_t readbyte;
-
-	HAL_SPI_TransmitReceive(&SpiHandle, &sendbyte, &readbyte, 1, 10);
-
-	// Return the Byte read from the SPI bus 
-	return readbyte;
-}
 
 /**
   * @brief  Delay Function.
@@ -175,8 +163,10 @@ void print_packet() {
 
 	debug_printf("Packet Type : %X\nDestination Address : ", rec_packet_type);
 	debug_flush();
-	
-	for(int i = 3 ; i >= 0; i--){ 
+
+	int i;	
+
+	for(i = 3 ; i >= 0; i--){ 
 		debug_printf(" %X", rec_destination_address[i]);
 		Delay(100);
 
@@ -188,7 +178,7 @@ void print_packet() {
 
 	debug_printf("\nSource Address : ");
 
-	for(int i = 3 ; i >= 0; i--){ 
+	for(i = 3 ; i >= 0; i--){ 
 		debug_printf(" %X", rec_source_address[i]);
 		Delay(100);
 
@@ -196,7 +186,7 @@ void print_packet() {
 
 	debug_printf("\nPayload : ");
 
-	for(int i = 6 ; i >= 0; i--){ 
+	for(i = 6 ; i >= 0; i--){ 
 		debug_printf(" %X", rec_payload[i]);
 		Delay(100);
 

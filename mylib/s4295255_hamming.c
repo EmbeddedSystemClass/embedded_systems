@@ -25,7 +25,6 @@ int error_corrected = 0;
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
-#include "s4295255_ledbar.h"
 #include "s4295255_radio.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,6 +33,8 @@ int error_corrected = 0;
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
+int check_parity(unsigned char hbyte);
+unsigned char hamming_byte_decode(unsigned char hbyte);
 
 /**
   * @brief  Initialise the servo
@@ -50,9 +51,11 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 	uint8_t out;
 	uint16_t packet_to_send; //2 bytes
 
-	uint8_t in = hybte & 0xF;
+	int i;
+
+	uint8_t in = hbyte & 0xF;
 	
-	for(int i = 0; i < 2; i++){
+	for(i = 0; i < 2; i++){
 
 		if(i == 1) { 
 			in = hbyte >> 4; //encode 4 MSBs
@@ -94,7 +97,7 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 
 	}
 
-	s4295255_radio_sendpacket(packet_to_send);//send the out packet
+	s4295255_radio_sendpacket((char *)&packet_to_send);//send the out packet
 
 }
 extern unsigned char s4295255_hamming_decode(unsigned short hword){
@@ -234,8 +237,9 @@ int check_parity(unsigned char hbyte) {
 
 	int p =0;
 	uint8_t p0 = !!(hbyte & 0x80);
+	int z;
 
-	for (int z = 0; z<7; z++)		
+	for (z = 0; z<7; z++)		
 		p = p ^ !!(hbyte & (1 << z));
 
 

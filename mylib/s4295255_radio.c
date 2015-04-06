@@ -27,7 +27,7 @@
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
-#include "s4295255_ledbar.h"
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -35,6 +35,8 @@
 #define NRF24L01P_READ_REG        0x00	// Define read command to register
 #define NRF24L01P_EN_AA           0x01	// 'Enable Auto Acknowledgment' register address
 #define NRF24L01P_EN_RXADDR       0x02	// 'Enabled RX addresses' register address
+#define NRF24L01P_RF_CH           0x05
+#define NRF24L01P_RF_SETUP        0x06	// 'RF setup' register address
 #define NRF24L01P_STATUS          0x07	// 'Status' register address
 #define NRF24L01P_WRITE_REG       0x20	// Define write command to register
 #define NRF24L01P_TX_ADDR         0x10	// 'TX address' register address
@@ -53,7 +55,11 @@ static SPI_HandleTypeDef SpiHandle;
 /* Private function prototypes -----------------------------------------------*/
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);
+uint8_t readRegister(uint8_t reg_addr);
 uint8_t sendRecv_Byte(uint8_t byte);
+void mode_rx();
+void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
+void rfDelay(__IO unsigned long nCount);
 
 
 /**
@@ -78,7 +84,7 @@ extern void s4295255_radio_init(){
 	__BRD_SPI_MISO_GPIO_CLK();
 	__BRD_SPI_MOSI_GPIO_CLK();
 	__BRD_SPI_CS_GPIO_CLK();
-	__BRD_D9_GPIO_CLK()
+	__BRD_D9_GPIO_CLK();
 	
 	/* Initialise SPI and Pin clocks*/
 	/* SPI SCK pin configuration */
@@ -137,11 +143,11 @@ extern void s4295255_radio_init(){
   	HAL_GPIO_Init(BRD_SPI_CS_GPIO_PORT, &GPIO_spi);	//Initialise Pin
 
 	/* Configure GPIO PIN for RX/TX mode */
-  	GPIO_spi.Pin = NRF_MODE_PIN;
+  	GPIO_spi.Pin = BRD_D9_PIN;
   	GPIO_spi.Mode = GPIO_MODE_OUTPUT_PP;		//Output Mode
   	GPIO_spi.Pull = GPIO_PULLUP;			//Enable Pull up, down or no pull resister
   	GPIO_spi.Speed = GPIO_SPEED_FAST;			//Pin latency
-  	HAL_GPIO_Init(NRF_MODE_GPIO_PORT, &GPIO_spi);	//Initialise Pin
+  	HAL_GPIO_Init(BRD_D9_GPIO_PORT, &GPIO_spi);	//Initialise Pin
 
 	/* Set chip select high */
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
@@ -247,12 +253,12 @@ void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 void write_to_register(uint8_t reg_addr, uint8_t val){
 
-	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0)
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
 
 	sendRecv_Byte(NRF24L01P_WRITE_REG | reg_addr);
 	sendRecv_Byte(val);
 
-	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1) 
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 
 }
 
@@ -275,8 +281,8 @@ uint8_t readRegister(uint8_t reg_addr) {
 
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
 
-	rxbyte = nrf24l01plus_spi_SendRecv_Byte(reg_addr);
-	rxbyte = nrf24l01plus_spi_SendRecv_Byte(0xFF);
+	rxbyte = sendRecv_Byte(reg_addr);
+	rxbyte = sendRecv_Byte(0xFF);
 
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 		
@@ -312,10 +318,14 @@ void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 		 
 }
-
-extern void mode_rx(void) {
+void mode_rx() {
 
     write_to_register(NRF24L01P_CONFIG, 0x73);	//0x0f     	// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:RX. 
     HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);                            		// Set CE pin high to enable RX device
+}
+
+void rfDelay(__IO unsigned long nCount) {
+  while(nCount--) {
+  }
 }
 

@@ -29,7 +29,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-//#define STAGE2   //uncomment when using Stage 2 or a program that doesnt take input from Z axis
+#define STAGE2   //uncomment when using Stage 2 or a program that doesnt take input from Z axis
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
