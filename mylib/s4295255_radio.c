@@ -27,6 +27,7 @@
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
+//#include "nrf24l01plus.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,9 +50,13 @@
 #define NRF24L01P_TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
 
 #define NRF24L01P_RX_DR    0x40
+
+#define DEBUG 1
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
+uint8_t source_address[] = {0x00, 0x42, 0x95, 0x25, 0x56};
+uint8_t s_a[] = {0x12, 0x34, 0x56, 0x78, 0x90};
 /* Private function prototypes -----------------------------------------------*/
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);
@@ -155,6 +160,10 @@ extern void s4295255_radio_init(){
 }
 extern void s4295255_radio_setchan(unsigned char chan){
 	
+	#ifdef DEBUG
+		debug_printf("Channel is: %d\n\r", chan);
+	#endif
+	
     write_to_register(NRF24L01P_RF_CH, chan);        	// Select RF channel
     write_to_register(NRF24L01P_RF_SETUP, 0x06);   							// TX_PWR:0dBm, Datarate:1Mbps
     write_to_register(NRF24L01P_CONFIG, 0x02);	     							// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX. MAX_RT & TX_DS enabled..
@@ -167,7 +176,7 @@ extern void s4295255_radio_settxaddress(unsigned char *addr){
 	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
 	
 	writebuffer(NRF24L01P_WRITE_REG | NRF24L01P_TX_ADDR, addr, 5);		// Writes TX_Address to nRF24L0
-	writebuffer(NRF24L01P_WRITE_REG | NRF24L01P_RX_ADDR_P0, addr, 5);	//NRF24L01P_TX_ADR_WIDTH);
+	writebuffer(NRF24L01P_WRITE_REG | NRF24L01P_RX_ADDR_P0, s_a, 5);	//NRF24L01P_TX_ADR_WIDTH);
 
     write_to_register(NRF24L01P_EN_AA, 0x00);      							// Disable Auto.Ack
     write_to_register(NRF24L01P_EN_RXADDR, 0x01);  							// Enable Pipe0
@@ -188,7 +197,9 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 	rfDelay(0x40);//rfDelay(0x100);
     HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);	//Set CE pin low to enable TX mode
 	rfDelay(0x40*3);	//rfDelay(0x100);
-	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);; 
+	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
+	rfDelay(0x40*132);
+	mode_rx();
 
 }
 extern void s4295255_radio_getpacket(unsigned char *txpacket){
@@ -199,7 +210,7 @@ extern void s4295255_radio_getpacket(unsigned char *txpacket){
     unsigned char status = readRegister(NRF24L01P_STATUS);                  // read register STATUS's value
 
 #ifdef DEBUG
-	debug_printf("DEBUG:RCV packet status: %X\n\r", status);
+	debug_printf("DEBUG:RCV packet status: %X\n\r", status & NRF24L01P_RX_DR);
 #endif
 
 	

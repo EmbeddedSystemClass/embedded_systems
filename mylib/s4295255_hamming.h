@@ -30,7 +30,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
-extern void s4295255_hamming_encode(unsigned char hbyte);
+extern uint16_t s4295255_hamming_encode(unsigned char hbyte);
 extern unsigned char s4295255_hamming_decode(unsigned short hword);
 #endif
 

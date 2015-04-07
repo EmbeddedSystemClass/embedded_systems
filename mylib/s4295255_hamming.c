@@ -43,13 +43,13 @@ unsigned char hamming_byte_decode(unsigned char hbyte);
 
   */
 
-extern void s4295255_hamming_encode(unsigned char hbyte){
+extern uint16_t s4295255_hamming_encode(unsigned char hbyte){
 
 	uint8_t d0, d1, d2, d3;
 	uint8_t p0 = 0, h0, h1, h2;
 	uint8_t z;
 	uint8_t out;
-	uint16_t packet_to_send; //2 bytes
+	uint16_t packet_to_send = 0; //2 bytes
 
 	int i;
 
@@ -97,7 +97,7 @@ extern void s4295255_hamming_encode(unsigned char hbyte){
 
 	}
 
-	s4295255_radio_sendpacket((char *)&packet_to_send);//send the out packet
+	return packet_to_send;
 
 }
 extern unsigned char s4295255_hamming_decode(unsigned short hword){

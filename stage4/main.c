@@ -16,17 +16,18 @@
 #include "debug_printf.h"
 #include "s4295255_radio.h"
 #include "s4295255_hamming.h"
+//#include "nrf24l01plus.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define CHANNEL	40
+#define CHANNEL	50
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t destination_addr[] = {0x12, 0x34, 0x56, 0x78};
-uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56};
+uint8_t destination_addr[] = {0x7B, 0x56, 0x34, 0x12, 0x00};
+uint8_t source_addr[] = {0x00,0x42, 0x95, 0x25, 0x56};
 char packet_type = 0x20;
 char payload[7];
-uint8_t packetbuffer[32];	/* Packet buffer initialised to 32 bytes (max length) */
+uint8_t packet[32];	/* Packet buffer initialised to 32 bytes (max length) */
 unsigned char rec_packet_type;
 unsigned char rec_destination_address[4];
 unsigned char rec_source_address[4];
@@ -37,6 +38,7 @@ unsigned char rec_payload[4];
 void Delay(__IO unsigned long nCount);
 void HardwareInit();
 void print_packet();
+void get_payload();
 
 /**
   * @brief  Main program
@@ -50,47 +52,103 @@ int main(void) {
 	BRD_init();
 	HardwareInit();
 
+	/* Initialise NRF24l01plus */ 
+	//nrf24l01plus_init();
+	
+	/* Put NRF24l01plus in RX mode */
+	//nrf24l01plus_mode_rx();
+
+	int ptr = 0;
+
 	/* Main Processing Loop */
     while (1) {
 
-		int i = 0;
 
-		for(i = 0; i < 7; i++){
+		//get_payload();
 
-			payload[i] = debug_getc();
-			if(payload[i] = '\r') {
-				debug_printf("You pressed \"Enter\"\n");
-				break;
-			}
+		
+		
+
+		char RxChar;
+
+		RxChar = debug_getc();
+		
+		if(RxChar != '\0') {
+			payload[ptr] = RxChar;
+
+			debug_printf("%c\n", payload[ptr]);
+						ptr++;
+			Delay(0x7FFF00/20);
+
+			
 		}
 
-		debug_printf("Sending Packet\n");
+
+		if(ptr == 7) {
+			debug_printf("Payload was received , now send the packet\n");
+			ptr = 0;
+
+
+		//debug_printf("Sending Packet\n");
 
 		//hamming encoding and then send packet
-	
-		s4295255_hamming_encode(packet_type); //encode packet type
+		int p_ptr = 0;
+		int i;
+		uint16_t encoded_data;
+		encoded_data = s4295255_hamming_encode(packet_type); //encode packet type
+		packet[p_ptr++] = encoded_data & 0xFF;
+		packet[p_ptr++] = encoded_data >> 8;
+		
 
-		for(i = 3; i >= 0; i--) {
-			s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
+		for(i = 0; i ,i<= 3; i++) {
+			encoded_data = s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
+			packet[p_ptr++] = encoded_data & 0xFF;
+			packet[p_ptr++] = encoded_data >> 8;
 		}
 
-		for(i = 3; i >= 0; i--) {
-			s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
+		for(i = 4; i >= 1; i--) {
+			encoded_data = s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
+			packet[p_ptr++] = encoded_data & 0xFF;
+			packet[p_ptr++] = encoded_data >> 8;
 		}
 
-		for(i = 6; i >= 0; i--) {
-			s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
+		for(i = 0; i <= 6; i++) {
+			encoded_data = s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
+			packet[p_ptr++] = encoded_data & 0xFF;
+			packet[p_ptr++] = encoded_data >> 8;
 		}
 
+		//Print the packet to be sent
 
-		s4295255_radio_getpacket(packetbuffer);
+		for(i = 0; i < 32; i++) { 
+
+			debug_printf("%x ", packet[i]);
+			Delay(0x7FFF00/20);
+		}
+
+		debug_printf("\n");
+			
+
+		s4295255_radio_sendpacket(packet);
+		s4295255_radio_getpacket(packet);
+
+		//Print the packet recieved
+
+		for(i = 0; i < 32; i++) { 
+
+			debug_printf("%x ", packet[i]);
+			Delay(0x7FFF00/20);
+		}
+
+		debug_printf("\n");
+		
 
 		int ptr = 0;
 
-		rec_packet_type = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
+		//rec_packet_type = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
 
 
-
+		/*
 		for(i = 0; i < 4; i++) {
 
 			rec_destination_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
@@ -127,7 +185,10 @@ int main(void) {
 
 		print_packet();		
 		
+		*/
 
+		} 
+		
     	BRD_LEDToggle();	//Toggle LED on/off
     	Delay(0x7FFF00);	//Delay function
   	}
@@ -140,10 +201,14 @@ int main(void) {
   * @retval None
   */
 void HardwareInit() {
+
+	BRD_LEDInit();	//Initialise Blue LED
+	BRD_LEDOff();	//Turn off Blue LED
 	
 	s4295255_radio_init();
 	s4295255_radio_settxaddress(destination_addr);
 	s4295255_radio_setchan(CHANNEL);
+	
 }
 
 
@@ -194,6 +259,33 @@ void print_packet() {
 
 	debug_printf("\n");
 	
+
+}
+
+void get_payload() {
+
+
+	int ptr = 0;
+
+	char RxChar;
+
+	while(ptr != 7) {
+
+		
+		RxChar = debug_getc();
+		
+		if(RxChar != '\0') {
+			payload[ptr] = RxChar;
+
+			debug_printf("%c\n", payload[ptr]);
+						ptr++;
+			Delay(0x7FFF00/20);
+
+			
+		}
+
+	}
+
 
 }
 
