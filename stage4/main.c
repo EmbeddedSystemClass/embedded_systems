@@ -28,6 +28,7 @@ uint8_t source_addr[] = {0x00,0x42, 0x95, 0x25, 0x56};
 char packet_type = 0x20;
 char payload[7];
 uint8_t packet[32];	/* Packet buffer initialised to 32 bytes (max length) */
+uint8_t r_packet[32];
 unsigned char rec_packet_type;
 unsigned char rec_destination_address[4];
 unsigned char rec_source_address[4];
@@ -60,6 +61,8 @@ int main(void) {
 
 	int ptr = 0;
 
+	int rec = 0;
+
 	/* Main Processing Loop */
     while (1) {
 
@@ -68,7 +71,6 @@ int main(void) {
 
 		
 		
-
 		char RxChar;
 
 		RxChar = debug_getc();
@@ -130,13 +132,23 @@ int main(void) {
 			
 
 		s4295255_radio_sendpacket(packet);
-		s4295255_radio_getpacket(packet);
+		r_packet[0] = 0x1;
+		while(rec == 0) {
+		
+			s4295255_radio_getpacket(r_packet);
+			if(r_packet[0] != 0x1) {
+				rec =1;
 
+			}
+		
+		}
 		//Print the packet recieved
+		debug_printf("Recieved : ");
+		Delay(0x7FFF00/20);
 
 		for(i = 0; i < 32; i++) { 
 
-			debug_printf("%x ", packet[i]);
+			debug_printf("%x ", r_packet[i]);
 			Delay(0x7FFF00/20);
 		}
 
