@@ -37,6 +37,6 @@ extern void s4295255_radio_init();
 extern void s4295255_radio_setchan(unsigned char chan); 
 extern void s4295255_radio_settxaddress(unsigned char *addr); 
 extern void s4295255_radio_sendpacket(unsigned char *txpacket);
-extern void s4295255_radio_getpacket(unsigned char *txpacket);
+extern int s4295255_radio_getpacket(unsigned char *txpacket);
 #endif
 

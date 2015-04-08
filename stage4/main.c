@@ -68,7 +68,7 @@ int main(void) {
 
 
 		//get_payload();
-
+		
 		
 		
 		char RxChar;
@@ -133,16 +133,14 @@ int main(void) {
 
 		s4295255_radio_sendpacket(packet);
 		r_packet[0] = 0x1;
+		rec = 0;
 		while(rec == 0) {
 		
-			s4295255_radio_getpacket(r_packet);
-			if(r_packet[0] != 0x1) {
-				rec =1;
+			if(s4295255_radio_getpacket(r_packet) == 1) {
 
-			}
-		
-		}
-		//Print the packet recieved
+				debug_printf("Still Working	;\n");
+				rec =1;
+				//Print the packet recieved
 		debug_printf("Recieved : ");
 		Delay(0x7FFF00/20);
 
@@ -153,6 +151,10 @@ int main(void) {
 		}
 
 		debug_printf("\n");
+	}			
+		
+		}
+		
 		
 
 		int ptr = 0;

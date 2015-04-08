@@ -76,7 +76,7 @@ extern void s4295255_pushbutton_init(void) {
 
 
 #ifdef NOT_PROJECT
-void exti_a2_interrupt_handler(void){
+void exti_pb_interrupt_handler(void){
 
 }
 #endif

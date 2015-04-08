@@ -50,8 +50,7 @@
 #define NRF24L01P_TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
 
 #define NRF24L01P_RX_DR    0x40
-
-#define DEBUG 1
+//#define DEBUG 1
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
@@ -166,8 +165,11 @@ extern void s4295255_radio_setchan(unsigned char chan){
 	
     write_to_register(NRF24L01P_RF_CH, chan);        	// Select RF channel
     write_to_register(NRF24L01P_RF_SETUP, 0x06);   							// TX_PWR:0dBm, Datarate:1Mbps
-    write_to_register(NRF24L01P_CONFIG, 0x02);	     							// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX. MAX_RT & TX_DS enabled..
+    write_to_register(NRF24L01P_CONFIG, 0x02);	
 
+	Delay(0x04FF00);  							// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX. MAX_RT & TX_DS enabled..
+
+	mode_rx();
 }
 
 extern void s4295255_radio_settxaddress(unsigned char *addr){
@@ -198,11 +200,12 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
     HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);	//Set CE pin low to enable TX mode
 	rfDelay(0x40*3);	//rfDelay(0x100);
 	HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 0);
-	rfDelay(0x40*132);
+	//rfDelay(0x40*132);
+	Delay(0x04FF00);	
 	mode_rx();
 
 }
-extern void s4295255_radio_getpacket(unsigned char *txpacket){
+extern int s4295255_radio_getpacket(unsigned char *txpacket){
 
 	mode_rx();
 
@@ -227,6 +230,7 @@ extern void s4295255_radio_getpacket(unsigned char *txpacket){
 		write_to_register(NRF24L01P_STATUS, status);                  // clear RX_DR or TX_DS or MAX_RT interrupt flag
     }  
 
+	return rec;
 
 }
 
@@ -236,29 +240,30 @@ void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 	int i;
 
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
-
+	rfDelay(0x8FF);
 	sendRecv_Byte(NRF24L01P_WRITE_REG | reg_addr);
 
-	rfDelay(0x8FF);
+	rfDelay(0x7FFF00/1050);
 
-#ifdef DEBUG
-	debug_printf("DEBUG: WB: ");
-#endif
+//#ifdef DEBUG
+	//debug_printf("DEBUG: WB: ")
+//#endif
 	for (i = 0; i < buffer_len; i++) {
 		
 		/* Return the Byte read from the SPI bus */
 		sendRecv_Byte(buffer[i]);
 		rfDelay(0x100);	
 #ifdef DEBUG
-		debug_printf("%X ", buffer[i]);
+		//debug_printf("%X ", buffer[i]);
 #endif
 	}
 
 #ifdef DEBUG
-	debug_printf("\n\r");
+	//debug_printf("\n\r");
 #endif
-
+	rfDelay(0x8FF);
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+	rfDelay(0x8FF);
 
 }
 
@@ -307,9 +312,10 @@ void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
 
 	sendRecv_Byte(reg_addr);
+	rfDelay(0x8FF);
 
 #ifdef DEBUG
-	debug_printf("DEBUG:RB ");
+	//debug_printf("DEBUG:RB ");
 #endif
 	for (i = 0; i < buffer_len; i++) {
 		
@@ -317,17 +323,19 @@ void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 		buffer[i] = sendRecv_Byte(0xFF);
 
 #ifdef DEBUG
-		debug_printf("%X ", buffer[i]);
+		//debug_printf("%X ", buffer[i]);
 #endif
+
+		rfDelay(0x8FF);
 
 	}
 
 #ifdef DEBUG
-	debug_printf("\n\r");
+	//debug_printf("\n\r");
 #endif
-
+	rfDelay(0x8FF);
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
-		 
+	rfDelay(0x8FF);	 
 }
 void mode_rx() {
 
