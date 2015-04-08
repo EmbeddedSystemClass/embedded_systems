@@ -18,6 +18,7 @@
  * 1. 19/3/2015 - Created
  * 2. 19/3/2015 – Added functionality to init function. 
  * 3. 23/3/2015 - Added functionality to the set angle function
+ * 4. 8/4/2015 - Added functionality for tilt angle
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -59,14 +60,16 @@ extern void s4295255_servo_init(void) {
 
   	/* Enable the D2 Clock */
   	__BRD_D2_GPIO_CLK();
+	__BRD_D3_GPIO_CLK();
 
   	/* Configure the D2 pin with TIM2 output*/
-	GPIO_InitStructure.Pin = BRD_D2_PIN;				//Pin
+	GPIO_InitStructure.Pin = BRD_D2_PIN | BRD_D3_PIN ;				//Pin
   	GPIO_InitStructure.Mode =GPIO_MODE_AF_PP; 		//Set mode to be output alternate
   	GPIO_InitStructure.Pull = GPIO_NOPULL;			//Enable Pull up, down or no pull resister
   	GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;			//Pin latency
 	GPIO_InitStructure.Alternate = GPIO_AF1_TIM2;	//Set alternate function to be timer 2
-  	HAL_GPIO_Init(BRD_D2_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
+  	HAL_GPIO_Init(BRD_D2_GPIO_PORT, &GPIO_InitStructure);
+	HAL_GPIO_Init(BRD_D3_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 
 	/* Compute the prescaler value. SystemCoreClock = 168000000 - set for 500Khz clock */
   	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 500000) - 1;
@@ -132,4 +135,38 @@ extern void s4295255_servo_setangle(int angle) {
 	HAL_TIM_PWM_Start(&TIM_Init, TIM_CHANNEL_4);
 
 }
+
+extern void s4295255_servo_settiltangle(int angle) {
+
+	//converting the angle range -90 to +90 TO 0 to 180
+
+	int t_angle;
+
+	t_angle = 90 + angle;
+
+	if(t_angle < 5) {
+
+		t_angle = 5;
+
+	}
+
+	if(t_angle > 175) {
+
+		t_angle = 175;
+
+	}
+
+	//get the required pulse width
+	PWMConfig.Pulse = ((1/90.0*t_angle) + 0.45)*500000/1000;	
+	/* Enable PWM for Timer 2, channel 4 */
+	HAL_TIM_PWM_Init(&TIM_Init);	
+	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_3);	
+
+
+		/* Start PWM */
+	HAL_TIM_PWM_Start(&TIM_Init, TIM_CHANNEL_3);
+
+}
+
+
 

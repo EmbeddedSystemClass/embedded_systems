@@ -32,5 +32,6 @@
 
 extern void s4295255_servo_init(void);
 extern void s4295255_servo_setangle(int angle);
+extern void s4295255_servo_settiltangle(int angle);
 #endif
 

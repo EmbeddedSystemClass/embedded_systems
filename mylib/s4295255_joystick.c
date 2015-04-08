@@ -128,14 +128,14 @@ extern uint16_t s4295255_joystick_get(int axis) {
    
 	} else if(axis == 1) {
 
-		AdcChanConfig.Channel = BRD_A1_ADC_CHAN;							//Use AO pin
+		AdcChanConfig.Channel = BRD_A1_ADC_CHAN;							//Use A1 pin
 		AdcChanConfig.Rank         = 1;
     	AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     	AdcChanConfig.Offset       = 0;  
   
 	} else if(axis == 2) {
 
-		AdcChanConfig.Channel = BRD_A2_ADC_CHAN;							//Use AO pin
+		AdcChanConfig.Channel = BRD_A2_ADC_CHAN;							//Use A2 pin
 		AdcChanConfig.Rank         = 1;
     	AdcChanConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     	AdcChanConfig.Offset       = 0;  
