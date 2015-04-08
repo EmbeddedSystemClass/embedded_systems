@@ -13,13 +13,25 @@
 #include "stm32f4xx_hal_conf.h"
 #include "s4295255_servo.h"
 #include "s4295255_button.h"
+#include "s4295255_radio.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 //#define CONSOLE //Uncomment to use the console as direction provider, stage 3, design task 2
 #define DEBUG  //Uncomment to print debug statements
+#define CHANNEL	50 //channel of the radio
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+uint8_t destination_addr[] = {0x7B, 0x56, 0x34, 0x12, 0x00};
+uint8_t source_addr[] = {0x00,0x42, 0x95, 0x25, 0x56};
+char packet_type = 0xA1;
+char payload[19];
+uint8_t packet[32];
+
+int pan_angle = 0; //angle of the servo
+int tilt_angle = 0;
+int console = 0; // to activate(1) or deactivate(0) console control of the servos
+
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
 void Hardware_init();
@@ -30,9 +42,7 @@ int print_counter  = 0; // Counter to tell when the pan and tilt values will be 
 
 
 
-int pan_angle = 0; //angle of the servo
-int tilt_angle = 0;
-int console = 0; // to activate(1) or deactivate(0) console control of the servos 
+ 
 //int direction = 1;  //direction the servo will move in if controlled from console
 
 /**
@@ -44,6 +54,7 @@ void main(void) {
 
 
 	char RxChar;
+	int payload_ptr = 0; //ptr for the payload recieved to be sent for task4
 
 	BRD_init();	//Initalise NP2
 	Hardware_init();	//Initalise hardware modules
@@ -52,6 +63,8 @@ void main(void) {
 
 
 		if(console) {	//servo control is transferred to the console
+
+			payload_ptr = 0;
 			RxChar = debug_getc();
 
 			if (RxChar != '\0') {
@@ -95,6 +108,71 @@ void main(void) {
 #endif		
 			set_new_panangle(adc_x_value);
 			set_new_tiltangle(adc_y_value);
+
+			
+			//get chars from the terminal for sending as uncoded RF
+			RxChar = debug_getc();
+		
+			if(RxChar != '\0') {
+				
+				if(RxChar != '\r') {
+					payload[payload_ptr] = RxChar;
+
+#ifdef DEBUG
+					debug_printf("%c\n", payload[payload_ptr]);
+#endif
+					payload_ptr++;
+				} else {
+					
+					for(;payload_ptr < 19;payload_ptr++) {
+
+						payload[payload_ptr] = '\0';
+					}
+					
+
+
+				}
+
+			}
+
+			if(payload_ptr > 18) {
+
+				int packet_ptr = 0; //ptr for the packet that is to be sent
+				int i = 0; //for loop variable
+
+				packet[packet_ptr++] = packet_type;
+				
+				for(i=0; i <= 3; i++){
+					packet[packet_ptr++] = destination_addr[i];
+				}
+
+				for(i=4; i > 0; i--) {
+					packet[packet_ptr++] = source_addr[i];
+				} 
+
+				for(i=0; i < 19; i++) {
+					packet[packet_ptr++] = payload[i]; //may have to reverse the direction of sending of payload
+				}
+
+				for(;packet_ptr < 32; packet_ptr++) {
+					packet[packet_ptr++] = 0;
+				}
+
+				payload_ptr = 0;
+
+#ifdef DEBUG
+				debug_printf("Sending : ");
+				for(i = 0; i < 32; i++) { 
+
+					debug_printf("%x ", packet[i]);
+					Delay(0x7FFF00/20);
+				}
+#endif
+
+				s4295255_radio_sendpacket(packet);
+				
+
+			}
 		}
 
 		if(print_counter > 20) { 
@@ -122,6 +200,9 @@ void Hardware_init(void) {
 	s4295255_servo_init();
 	s4295255_servo_setangle(pan_angle);
 	s4295255_servo_settiltangle(tilt_angle);
+	s4295255_radio_init();
+	s4295255_radio_settxaddress(destination_addr);
+	s4295255_radio_setchan(CHANNEL);
 	
 	
 }
