@@ -112,9 +112,9 @@ extern void s4295255_servo_setangle(int angle) {
 
 	p_angle = 90 + angle;
 
-	if(p_angle < 5) {
+	if(p_angle < 15) {
 
-		p_angle = 5;
+		p_angle = 15;
 
 	}
 
@@ -144,9 +144,9 @@ extern void s4295255_servo_settiltangle(int angle) {
 
 	t_angle = 90 + angle;
 
-	if(t_angle < 5) {
+	if(t_angle < 15) {
 
-		t_angle = 5;
+		t_angle = 15;
 
 	}
 

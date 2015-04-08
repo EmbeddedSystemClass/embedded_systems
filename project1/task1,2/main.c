@@ -16,6 +16,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 //#define CONSOLE //Uncomment to use the console as direction provider, stage 3, design task 2
+#define DEBUG  //Uncomment to print debug statements
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -23,6 +24,7 @@ void Delay(__IO unsigned long nCount);
 void Hardware_init();
 void set_new_panangle(uint16_t adc_x_value);
 void set_new_tiltangle(uint16_t adc_y_value);
+int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
 
 
 
@@ -67,15 +69,29 @@ void main(void) {
 			//recieve joystick values
 		uint16_t adc_x_value = s4295255_joystick_get(0);
 		uint16_t adc_y_value = s4295255_joystick_get(1);
-		
+
+#ifdef DEBUG		
 		/* Print ADC conversion values */
-		debug_printf("ADC Value: %d\n", adc_y_value);
-		
+		if(adc_x_value > 2025 || adc_x_value < 1995) {
+			
+			debug_printf("ADC X Value: %d\n", adc_x_value);
+
+		}
+		if(adc_y_value > 2060 || adc_y_value < 2020) {
+			
+			debug_printf("ADC Y Value: %d\n", adc_y_value);
+
+		}
+#endif		
 		set_new_panangle(adc_x_value);
 		set_new_tiltangle(adc_y_value);
 
-		//debug_printf("PAN : %d  TILT : %d\n", pan_angle, tilt_angle); //printing out the angles to the console
+		if(print_counter > 20) { 
+			print_counter = 0;
+			debug_printf("PAN : %d  TILT : %d\n", pan_angle, tilt_angle); //printing out the angles to the console
+		}
 
+		print_counter++;
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
     	Delay(0x7FFF00/10);	//Delay function
 	}
@@ -152,22 +168,22 @@ void exti_a2_interrupt_handler(void) {
 void set_new_panangle(uint16_t adc_x_value) {
 
 	//setting the value of the pan angle according to the value from x - axis
-		if(adc_x_value < 2001) {
+		if(adc_x_value < 1995) {
 
 			pan_angle = pan_angle - 1;
-			if(pan_angle < -90) {
+			if(pan_angle < -75) {
 
-				pan_angle = -90;
+				pan_angle = -75;
 
 			}
 			s4295255_servo_setangle(pan_angle);
 			
-		} else if(adc_x_value > 2020) {
+		} else if(adc_x_value > 2025) {
 
 			pan_angle = pan_angle + 1;
-			if(pan_angle > 90) {
+			if(pan_angle > 75) {
 
-				pan_angle = 90;
+				pan_angle = 75;
 
 			}
 			
@@ -180,22 +196,22 @@ void set_new_panangle(uint16_t adc_x_value) {
 void set_new_tiltangle(uint16_t adc_y_value) {
 
 	//setting the value of the tilt angle according to the value from y - axis
-		if(adc_y_value < 2035) {
+		if(adc_y_value < 2020) {
 
 			tilt_angle = tilt_angle - 1;
-			if(tilt_angle < -90) {
+			if(tilt_angle < -85) {
 
-				tilt_angle = -90;
+				tilt_angle = -85;
 
 			}
 			s4295255_servo_settiltangle(tilt_angle);
 			
-		} else if(adc_y_value > 2055) {
+		} else if(adc_y_value > 2060) {
 
 			tilt_angle = tilt_angle + 1;
-			if(tilt_angle > 90) {
+			if(tilt_angle > 75) {
 
-				tilt_angle = 90;
+				tilt_angle = 75;
 
 			}
 			
