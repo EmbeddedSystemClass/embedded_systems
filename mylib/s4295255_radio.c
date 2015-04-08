@@ -243,7 +243,7 @@ void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 	rfDelay(0x8FF);
 	sendRecv_Byte(NRF24L01P_WRITE_REG | reg_addr);
 
-	rfDelay(0x7FFF00/1050);
+	rfDelay(0x7FFF00/950);
 
 //#ifdef DEBUG
 	//debug_printf("DEBUG: WB: ")
