@@ -12,6 +12,7 @@
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "s4295255_servo.h"
+#include "s4295255_button.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -31,6 +32,7 @@ int print_counter  = 0; // Counter to tell when the pan and tilt values will be 
 
 int pan_angle = 0; //angle of the servo
 int tilt_angle = 0;
+int console = 0; // to activate(1) or deactivate(0) console control of the servos 
 //int direction = 1;  //direction the servo will move in if controlled from console
 
 /**
@@ -48,43 +50,52 @@ void main(void) {
 
   	while (1) {
 
-#ifdef CONSOLE
-	/* Receive characters using getc, and set direction */
-		RxChar = debug_getc();
 
-		if (RxChar != '\0') {
+		if(console) {	//servo control is transferred to the console
+			RxChar = debug_getc();
 
-			if(RxChar == 'p') {
+			if (RxChar != '\0') {
 
-				direction = 1;
+				if(RxChar == 'w') {
 
-			} else if(RxChar == 'n') {
+					set_new_tiltangle(2061);
 
-				direction = -1;
+				} else if(RxChar == 's') {
+
+					set_new_tiltangle(2019);
+
+				} else if(RxChar == 'a') {
+
+					set_new_panangle(2026);
+
+				} else if(RxChar == 'd') {
+
+					set_new_panangle(1994);
+
+				}
 
 			}
-
-		}
-#endif
+		} else {
 			//recieve joystick values
-		uint16_t adc_x_value = s4295255_joystick_get(0);
-		uint16_t adc_y_value = s4295255_joystick_get(1);
+			uint16_t adc_x_value = s4295255_joystick_get(0);
+			uint16_t adc_y_value = s4295255_joystick_get(1);
 
 #ifdef DEBUG		
-		/* Print ADC conversion values */
-		if(adc_x_value > 2025 || adc_x_value < 1995) {
+			/* Print ADC conversion values */
+			if(adc_x_value > 2025 || adc_x_value < 1995) {
 			
-			debug_printf("ADC X Value: %d\n", adc_x_value);
+				debug_printf("ADC X Value: %d\n", adc_x_value);
 
-		}
-		if(adc_y_value > 2060 || adc_y_value < 2020) {
+			}
+			if(adc_y_value > 2060 || adc_y_value < 2020) {
 			
-			debug_printf("ADC Y Value: %d\n", adc_y_value);
+				debug_printf("ADC Y Value: %d\n", adc_y_value);
 
-		}
+			}
 #endif		
-		set_new_panangle(adc_x_value);
-		set_new_tiltangle(adc_y_value);
+			set_new_panangle(adc_x_value);
+			set_new_tiltangle(adc_y_value);
+		}
 
 		if(print_counter > 20) { 
 			print_counter = 0;
@@ -107,6 +118,7 @@ void Hardware_init(void) {
 
 
 	s4295255_joystick_init();
+	s4295255_pushbutton_init();
 	s4295255_servo_init();
 	s4295255_servo_setangle(pan_angle);
 	s4295255_servo_settiltangle(tilt_angle);
@@ -163,6 +175,37 @@ void exti_a2_interrupt_handler(void) {
 }
 
 */
+
+/**
+  * @brief  exti interrupt Function for PB.
+
+
+  * @param  None
+  * @retval None
+
+  */
+
+void exti_pb_interrupt_handler(void) {
+	
+
+
+
+	console = !(console);
+
+#ifdef DEBUG	
+	debug_printf("Push Button Interrupt Recieved Console = %d\n", console);
+#endif
+
+	Delay(0x4C4B40); //Switch Debouncing 	
+
+
+	HAL_GPIO_EXTI_IRQHandler(BRD_PB_PIN);				//Clear PB pin external interrupt flag
+
+	
+
+
+}
+
 
 //get the new value of the angle that needs to be changed
 void set_new_panangle(uint16_t adc_x_value) {
