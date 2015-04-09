@@ -14,6 +14,8 @@
 #include "s4295255_servo.h"
 #include "s4295255_button.h"
 #include "s4295255_radio.h"
+#include "s4295255_laser.h"
+#include "s4295255_manchester.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -32,6 +34,9 @@ uint8_t r_packet[32]; //packet to be recieved
 int pan_angle = 0; //angle of the servo
 int tilt_angle = 0;
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
+int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
+			   //RF wont work. Toggled by *. 
+int data_length = 0; //length of the data recieved from the terminal
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
@@ -39,6 +44,7 @@ void Hardware_init();
 void set_new_panangle(uint16_t adc_x_value);
 void set_new_tiltangle(uint16_t adc_y_value);
 int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
+
 
 
 
@@ -118,12 +124,22 @@ void main(void) {
 			if(RxChar != '\0') {
 				
 				if(RxChar != '\r') {
-					payload[payload_ptr] = RxChar;
+					
+					if(RxChar == 42) { //toggles the use of laser
+						laser = !(laser);
 
+					} else {
+								
+						payload[payload_ptr] = RxChar;
+
+					
 #ifdef DEBUG
-					debug_printf("%c\n", payload[payload_ptr]);
+						debug_printf("%c\n", payload[payload_ptr]);
 #endif
-					payload_ptr++;
+						payload_ptr++;
+						data_length++;
+
+					}
 				} else {
 					
 					for(;payload_ptr < 19;payload_ptr++) {
@@ -171,33 +187,36 @@ void main(void) {
 				}
 #endif
 
-				s4295255_radio_sendpacket(packet);
+				if(!laser) {
+					s4295255_radio_sendpacket(packet);
+				} else { //encode , modulate and send the data through the laser
+					
+					uint16_t encoded_value; //value received after encoding 1 char
+					//DO STUFF with laser
+					uint8_t encoded_data[2*data_length]; //the data to be sent
+					int encoded_data_ptr = 0; //ptr to fill up the encoded data
+					//hamming encode the data : done
+					for(i = 0; i < data_length; i++) {
 
-				/*
-				r_packet[0] = 0x1;
-		while(rec == 0) {
-		
-			s4295255_radio_getpacket(r_packet);
-			if(r_packet[0] != 0x1) {
-				rec =1;
+						encoded_value = s4295255_hamming_encode(payload[i]);
+						encoded_data[encoded_data_ptr++] = encoded_value & 0xFF;
+						encoded_data[encoded_data_ptr++] = encoded_value >> 8;
+						
 
-			}
-		
-		}
-		//Print the packet recieved
-		debug_printf("Recieved : ");
-		Delay(0x7FFF00/20);
+					}
 
-		for(i = 0; i < 32; i++) { 
+					//add start and stop bits : to be done when the modulating starts : done
+					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
+					for(i = 0; i < encoded_data_ptr; i++) {
 
-			debug_printf("%x ", r_packet[i]);
-			Delay(0x7FFF00/20);
-		}
-		
+						s42995255_manchester_byte_encode(encoded_data[i]);
 
-		debug_printf("\n");
+					}
+					 
+					
 
-		*/
+				}
+				
 				
 
 			}
@@ -245,6 +264,7 @@ void Hardware_init(void) {
 	s4295255_radio_init();
 	s4295255_radio_settxaddress(destination_addr);
 	s4295255_radio_setchan(CHANNEL);
+	s4295255_laser_init();
 	
 	
 }
@@ -259,45 +279,7 @@ void Delay(__IO unsigned long nCount) {
   	}
 }
 
-/**
-  * @brief  exti interrupt Function for A2.
 
-  * @param  nCount:specifies the Delay time length.
-  * @retval None
-  */
-/*
-void exti_a2_interrupt_handler(void) {
-	
-
-	//change the angle by 10 deg
-	angle = angle + (direction*10);
-
-	if(angle < -90) {
-
-		angle = -90;
-
-	}
-
-	if(angle > 90) {
-
-		angle = 90;
-
-	}
-
-	s4295255_servo_setangle(angle);
-
-
-	debug_printf("%d\n", angle);
-
-	Delay(0x4C4B40); //Switch Debouncing 	
-
-	HAL_GPIO_EXTI_IRQHandler(BRD_A2_PIN);				//Clear A2 pin external interrupt flag
-
-	
-
-}
-
-*/
 
 /**
   * @brief  exti interrupt Function for PB.
@@ -386,5 +368,9 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 		}
 
 }
+
+
+
+		
 
 
