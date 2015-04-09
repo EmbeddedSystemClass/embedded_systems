@@ -92,151 +92,111 @@ int main(void) {
 			ptr = 0;
 
 
-		//debug_printf("Sending Packet\n");
+			debug_printf("Sending Packet\n");
 
-		//hamming encoding and then send packet
-		int p_ptr = 0;
-		int i;
-		uint16_t encoded_data;
-		encoded_data = s4295255_hamming_encode(packet_type); //encode packet type
-		packet[p_ptr++] = encoded_data & 0xFF;
-		packet[p_ptr++] = encoded_data >> 8;
+			//hamming encoding and then send packet
+			int p_ptr = 0;
+			int i;
+			uint16_t encoded_data;
+			encoded_data = s4295255_hamming_encode(packet_type); //encode packet type
+			packet[p_ptr++] = encoded_data & 0xFF;
+			packet[p_ptr++] = encoded_data >> 8;
 		
 
-		for(i = 0; i ,i<= 3; i++) {
-			encoded_data = s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
-			packet[p_ptr++] = encoded_data & 0xFF;
-			packet[p_ptr++] = encoded_data >> 8;
-		}
+			for(i = 0; i ,i<= 3; i++) {
+				encoded_data = s4295255_hamming_encode(destination_addr[i]); //encode destination address, starting from LSB
+				packet[p_ptr++] = encoded_data & 0xFF;
+				packet[p_ptr++] = encoded_data >> 8;
+			}
 
-		for(i = 4; i >= 1; i--) {
-			encoded_data = s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
-			packet[p_ptr++] = encoded_data & 0xFF;
-			packet[p_ptr++] = encoded_data >> 8;
-		}
+			for(i = 4; i >= 1; i--) {
+				encoded_data = s4295255_hamming_encode(source_addr[i]); //encode source address, starting from LSB
+				packet[p_ptr++] = encoded_data & 0xFF;
+				packet[p_ptr++] = encoded_data >> 8;
+			}
 
-		for(i = 0; i <= 6; i++) {
-			encoded_data = s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
-			packet[p_ptr++] = encoded_data & 0xFF;
-			packet[p_ptr++] = encoded_data >> 8;
-		}
+			for(i = 0; i <= 6; i++) {
+				encoded_data = s4295255_hamming_encode(payload[i]); //encode payload, starting from LSB
+				packet[p_ptr++] = encoded_data & 0xFF;
+				packet[p_ptr++] = encoded_data >> 8;
+			}
 
 		//Print the packet to be sent
 
-		for(i = 0; i < 32; i++) { 
+			for(i = 0; i < 32; i++) { 
 
-			debug_printf("%x ", packet[i]);
-			Delay(0x7FFF00/20);
-		}
+				debug_printf("%x ", packet[i]);
+				Delay(0x7FFF00/20);
+			}
 
-		debug_printf("\n");
+			debug_printf("\n");
 			
 
-		s4295255_radio_sendpacket(packet);
-		r_packet[0] = 0x1;
-		rec = 0;
-		while(rec == 0) {
+			s4295255_radio_sendpacket(packet);
+			r_packet[0] = 0x1;
+			rec = 0;
+			while(rec == 0) {
 		
-			if(s4295255_radio_getpacket(r_packet) == 1) {
+				if(s4295255_radio_getpacket(r_packet) == 1) {
 
-				debug_printf("Still Working	;\n");
-				rec =1;
+					debug_printf("Still Working	;\n");
+					rec =1;
 				//Print the packet recieved
-				debug_printf("Recieved : ");
-				Delay(0x7FFF00/20);
-
-				for(i = 0; i < 32; i++) { 
-
-					debug_printf("%x ", r_packet[i]);
+					debug_printf("Recieved : ");
 					Delay(0x7FFF00/20);
-				}
 
-				debug_printf("\n");
+					for(i = 0; i < 32; i++) { 
 
-				int d_ptr = 0; //pointer for decoded data
+						debug_printf("%x ", r_packet[i]);
+						Delay(0x7FFF00/20);
+					}
+
+					debug_printf("\n");
+
+					int d_ptr = 0; //pointer for decoded data
 
 				
 
-				decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[0] | (r_packet[1] << 8)); //payload
+					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[0] | (r_packet[1] << 8)); //payload
+	
+					for(i = 2; i < 10; i +=2) {
 
-				for(i = 2; i < 10; i +=2) {
+						decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Destination address
 
-					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Destination address
+					}
 
-				}
+					for(i = 10; i < 18; i +=2) {
 
-				for(i = 10; i < 18; i +=2) {
+						decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Source address
 
-					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Source address
+					}
 
-				}
+					for(i = 18; i < 32; i +=2) {
 
-				for(i = 18; i < 32; i +=2) {
+						decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Payload
 
-					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Payload
+					}
 
-				}
-
-				//Print the packet recieved
-				debug_printf("Decoded Packet : ");
-				Delay(0x7FFF00/20);
-
-				for(i = 0; i < 16; i++) { 
-
-					debug_printf("%x ", decoded_packet[i]);
+					//Print the packet recieved
+					debug_printf("Decoded Packet : ");
 					Delay(0x7FFF00/20);
-				}
 
-				debug_printf("\n");
-				
+					for(i = 0; i < 16; i++) { 
+
+						debug_printf("%x ", decoded_packet[i]);
+						Delay(0x7FFF00/20);
+					}
+
+					debug_printf("\n");
+				}	
 		
-		}
+			}
 		
 		
 
 		int ptr = 0;
 
-		//rec_packet_type = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
-
-
-		/*
-		for(i = 0; i < 4; i++) {
-
-			rec_destination_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
-			if(rec_destination_address[i] != source_addr[3-i]){
-
-				ptr = 0;
-				break;
-
-			}
-
-		}
 		
-		if(ptr == 0) {
-
-			continue;
-		}
-
-		
-		for(i = 0; i < 4; i++) {
-
-			rec_source_address[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
-		
-
-		}
-
-
-		for(i = 0; i < 4; i++) {
-
-			rec_payload[i] = s4295255_hamming_decode((packetbuffer[ptr] << 8 | packetbuffer[ptr++]));
-		
-
-		}
-
-
-		print_packet();		
-		
-		*/
 
 		} 
 		
@@ -313,30 +273,5 @@ void print_packet() {
 
 }
 
-void get_payload() {
 
-
-	int ptr = 0;
-
-	char RxChar;
-
-	while(ptr != 7) {
-
-		
-		RxChar = debug_getc();
-		
-		if(RxChar != '\0') {
-			payload[ptr] = RxChar;
-
-			debug_printf("%c\n", payload[ptr]);
-						ptr++;
-			Delay(0x7FFF00/20);
-
-			
-		}
-
-	}
-
-
-}
 
