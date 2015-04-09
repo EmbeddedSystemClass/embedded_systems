@@ -29,6 +29,7 @@ char packet_type = 0x20;
 char payload[7];
 uint8_t packet[32];	/* Packet buffer initialised to 32 bytes (max length) */
 uint8_t r_packet[32];
+uint8_t decoded_packet[16];
 unsigned char rec_packet_type;
 unsigned char rec_destination_address[4];
 unsigned char rec_source_address[4];
@@ -141,17 +142,53 @@ int main(void) {
 				debug_printf("Still Working	;\n");
 				rec =1;
 				//Print the packet recieved
-		debug_printf("Recieved : ");
-		Delay(0x7FFF00/20);
+				debug_printf("Recieved : ");
+				Delay(0x7FFF00/20);
 
-		for(i = 0; i < 32; i++) { 
+				for(i = 0; i < 32; i++) { 
 
-			debug_printf("%x ", r_packet[i]);
-			Delay(0x7FFF00/20);
-		}
+					debug_printf("%x ", r_packet[i]);
+					Delay(0x7FFF00/20);
+				}
 
-		debug_printf("\n");
-	}			
+				debug_printf("\n");
+
+				int d_ptr = 0; //pointer for decoded data
+
+				
+
+				decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[0] | (r_packet[1] << 8)); //payload
+
+				for(i = 2; i < 10; i +=2) {
+
+					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Destination address
+
+				}
+
+				for(i = 10; i < 18; i +=2) {
+
+					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Source address
+
+				}
+
+				for(i = 18; i < 32; i +=2) {
+
+					decoded_packet[d_ptr++] = s4295255_hamming_decode(r_packet[i] | (r_packet[i+1] << 8)); //Payload
+
+				}
+
+				//Print the packet recieved
+				debug_printf("Decoded Packet : ");
+				Delay(0x7FFF00/20);
+
+				for(i = 0; i < 16; i++) { 
+
+					debug_printf("%x ", decoded_packet[i]);
+					Delay(0x7FFF00/20);
+				}
+
+				debug_printf("\n");
+				
 		
 		}
 		
