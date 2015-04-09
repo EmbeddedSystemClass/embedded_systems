@@ -29,19 +29,20 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 
-void send_one(); //function to output one as manchester code
-void send_zero(); //function to output zero as manchester code
-void Delay(__IO unsigned long nCount);
+void send_one(void); //function to output one as manchester code
+void send_zero(void); //function to output zero as manchester code
+void timeDelay(__IO unsigned long nCount);
 
 
-extern void manchester_byte_encode(uint8_t data);
+extern void s4295255_manchester_byte_encode(uint8_t data) {
 
 	send_one(); //first start bit 
 	send_one(); //second start bit
 
 	uint16_t mask = 0x01; //mask to get bit form data
 
-	int i; 
+
+	int i = 0; 
 
 	for(i = 0; i < 8; i++) {
 
@@ -57,15 +58,16 @@ extern void manchester_byte_encode(uint8_t data);
 		mask <<= 1;
 
 	}
+
 		
 	send_zero(); //stop bit
 }
 
 void send_zero(){
-	Delay(0x04FF00 * 50 );  //0x04FF00 is a delay of 10us
+	Delay(20000);  //0x04FF00 * is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x01);
 
-	Delay(0x04FF00 * 50 );  //0x04FF00 is a delay of 10us
+	Delay(20000);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x00);
 
 	
@@ -73,10 +75,10 @@ void send_zero(){
 }
 
 void send_one(){
-	Delay(0x04FF00 * 50 );  //0x04FF00 is a delay of 10us
+	Delay(20000);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x00);
 
-	Delay(0x04FF00 * 50 );  //0x04FF00 is a delay of 10us
+	Delay(20000 );  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x01);
 
 	
@@ -85,7 +87,7 @@ void send_one(){
 
 
 
-void Delay(__IO unsigned long nCount) {
+void timeDelay(__IO unsigned long nCount) {
   	while(nCount--) {
   	}
 }

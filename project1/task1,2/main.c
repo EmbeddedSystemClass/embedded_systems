@@ -20,7 +20,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 //#define CONSOLE //Uncomment to use the console as direction provider, stage 3, design task 2
-//#define DEBUG  //Uncomment to print debug statements
+#define DEBUG  //Uncomment to print debug statements
 #define CHANNEL	50 //channel of the radio
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -127,6 +127,9 @@ void main(void) {
 					
 					if(RxChar == 42) { //toggles the use of laser
 						laser = !(laser);
+#ifdef DEBUG
+						debug_printf("Toggled the laser\n");
+#endif
 
 					} else {
 								
@@ -178,19 +181,32 @@ void main(void) {
 
 				payload_ptr = 0;
 
-#ifdef DEBUG
-				debug_printf("Sending : ");
-				for(i = 0; i < 32; i++) { 
 
-					debug_printf("%x ", packet[i]);
-					Delay(0x7FFF00/20);
-				}
-#endif
 
 				if(!laser) {
+#ifdef DEBUG
+					debug_printf("Sending : ");
+					for(i = 0; i < 32; i++) { 
+
+						debug_printf("%x ", packet[i]);
+						Delay(0x7FFF00/20);
+					}
+#endif
 					s4295255_radio_sendpacket(packet);
 				} else { //encode , modulate and send the data through the laser
-					
+
+#ifdef DEBUG
+						debug_printf("Sending via laser :");
+#endif					
+
+#ifdef DEBUG
+
+					for(i = 0; i < data_length; i++) { 
+
+						debug_printf("%x ", payload[i]);
+						Delay(0x7FFF00/20);
+					}
+#endif
 					uint16_t encoded_value; //value received after encoding 1 char
 					//DO STUFF with laser
 					uint8_t encoded_data[2*data_length]; //the data to be sent
@@ -199,6 +215,9 @@ void main(void) {
 					for(i = 0; i < data_length; i++) {
 
 						encoded_value = s4295255_hamming_encode(payload[i]);
+#ifdef DEBUG
+						debug_printf("Encoded Value : %x , %x \n", encoded_value & 0xFF, (encoded_value >> 8));
+#endif	
 						encoded_data[encoded_data_ptr++] = encoded_value & 0xFF;
 						encoded_data[encoded_data_ptr++] = encoded_value >> 8;
 						
@@ -209,7 +228,7 @@ void main(void) {
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
 					for(i = 0; i < encoded_data_ptr; i++) {
 
-						s42995255_manchester_byte_encode(encoded_data[i]);
+						s4295255_manchester_byte_encode(encoded_data[i]);
 
 					}
 					 
