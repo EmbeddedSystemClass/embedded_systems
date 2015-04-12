@@ -56,7 +56,7 @@ extern uint16_t s4295255_hamming_encode(unsigned char hbyte){
 	uint8_t in = hbyte & 0xF;
 	
 	for(i = 0; i < 2; i++){
-
+		p0 = 0;
 		if(i == 1) { 
 			in = hbyte >> 4; //encode 4 MSBs
 		}

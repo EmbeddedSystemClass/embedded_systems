@@ -33,18 +33,20 @@ uint8_t r_packet[32]; //packet to be recieved via radio
 uint8_t l_packet[2] = {0x00, 0x00}; //packet recieved via laser
 int bit_count = 0; //count of the bits recieved via laser
 int byte_count = 0; //count of the bytes recieved via laser
-uint32_t l_word = 0xFFFF; 
 
 unsigned int prev_count = 0;
 unsigned int count = 0; 
 int time_period = 0;
 int syn = 0;
 int current_period;
-int flag = 0;
+
 uint8_t current_bit;
-int capture_next = 0;
+int capture = 0;
 uint8_t test;
 int edges = 0;
+int laser_received = 0; //to indicate if received from laser
+char decoded_laser_byte;
+uint16_t test_p;
 
 
 int pan_angle = -12; //angle of the servo
@@ -63,6 +65,7 @@ void Hardware_init();
 void set_new_panangle(uint16_t adc_x_value);
 void set_new_tiltangle(uint16_t adc_y_value);
 void tim3_irqhandler (void);
+void go_sync(void);
 int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
 
 
@@ -70,7 +73,7 @@ int print_counter  = 0; // Counter to tell when the pan and tilt values will be 
 
 
  
-//int direction = 1;  //direction the servo will move in if controlled from console
+
 
 /**
   * @brief  Main program
@@ -89,6 +92,10 @@ void main(void) {
 
   	while (1) {
 
+		
+		
+
+		
 		//r_packet[0] = 0x1;
 		if(console) {	//servo control is transferred to the console
 
@@ -247,13 +254,16 @@ void main(void) {
 					//add start and stop bits : to be done when the modulating starts : done
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
 						 //Start Input Capture 
-	HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+					HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
 
 					for(i = 0; i < encoded_data_ptr; i++) {
 
 						s4295255_manchester_byte_encode(encoded_data[i]);
 
 					}
+
+					data_length = 0;
+
 					 
 					
 
@@ -278,9 +288,20 @@ void main(void) {
 				debug_printf("\n");
 		}
 
+
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d  %d  %x   %x\n", pan_angle, tilt_angle, test, l_packet[0], l_packet[1]); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d  %d  %x   %x\n", pan_angle, tilt_angle, edges, l_packet[1], l_packet[0]); //printing out the angles to the console
+		}
+
+		if(laser_received){
+			decoded_laser_byte = s4295255_hamming_decode(l_packet[1] << 8 | l_packet[0]);
+			Delay(0x7FFF00/20);
+			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x\n", decoded_laser_byte, l_packet[1], l_packet[0]);
+			l_packet[0] = 0x00;
+			l_packet[1] = 0x00;
+			laser_received = 0;
+
 		}
 
 		print_counter++;
@@ -455,31 +476,13 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 
 void tim3_irqhandler (void) {
 
-	edges++;
+
 	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
 
-	if(bit_count == 8) {
-
-		
-		bit_count = 0;
-		byte_count = !byte_count;
-		syn = 0;
-		time_period = 0;
-		count = 0;
-		prev_count = 0;
-		test = edges;
-		edges = 0;
-		
-
-
-
-	} else 
-
-
-
 	if(syn == 0) {
-		//debug_printf("IC : %d  %d\n", time_period, count );
-		//edges++;
+//		debug_printf("IC : %d  %d\n", time_period, count );
+
+
 		if(prev_count == 0) {
 
 			prev_count = count;
@@ -496,52 +499,73 @@ void tim3_irqhandler (void) {
 			if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
 				syn = 1;	
 				current_bit = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN);
-
 				prev_count = count;
 					
-			}
-			else
+			} else {
 				prev_count = count;
 
-		}
+			}
+
+		} 
+
 
 	} else {
 		current_period = (count - prev_count) % 10000;
-		
-		if(capture_next == 1) {
 
-			prev_count = count;
-				
-			if(bit_count != 8)
-				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
-			else {
-					//stop bit 
+		if((current_period > (time_period - 30)) && (current_period < (time_period + 30))){
+
+			
+			if(capture){
+
+				if(bit_count < 8)
+					l_packet[byte_count] |= (current_bit << bit_count);
+				capture = !(capture);
+				bit_count++;
+
+			} else {
+
+				capture = 1;
+
 			}
-			capture_next = 0;
-			bit_count++;
 
-
-		} else if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
-
-			capture_next = 1;
 			prev_count = count;
 				
 
 		} else {
 
-			prev_count = count;
-			current_bit =  !(current_bit);
-			if(bit_count !=8)
-				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
-			else {
-					
-					//stop bit
 
-			}
+			current_bit =  !(current_bit);
+			if(bit_count < 8)
+				l_packet[byte_count] |=  (current_bit << bit_count);
 			bit_count++;
+			prev_count =count;
+
 			
 			
 		}
+
+		if(bit_count == 9) { //reinitialise everything for the second word
+
+			if(byte_count == 1){
+				HAL_TIM_Base_Stop_IT(&TIM_Initi);
+				laser_received = 1;
+
+			}
+
+			edges++;
+			prev_count = 0;
+			count = 0;
+			syn = 0;
+			bit_count = 0;
+			byte_count = !(byte_count);
+			capture = 0;
+			time_period = 0;
+
+
+		}
+
+	
+		
 
 
 	}
@@ -550,6 +574,14 @@ void tim3_irqhandler (void) {
 	__HAL_TIM_CLEAR_IT(&TIM_Initi, TIM_IT_TRIGGER);
 
 
+
+
+}
+
+
+void go_sync(){
+
+	
 
 
 }
