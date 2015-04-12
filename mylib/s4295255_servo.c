@@ -91,6 +91,7 @@ extern void s4295255_servo_init(void) {
     PWMConfig.OCIdleState  = TIM_OCIDLESTATE_RESET;
     PWMConfig.OCNIdleState = TIM_OCNIDLESTATE_RESET;
 
+	HAL_TIM_PWM_Init(&TIM_Init);	
 
 	
 
@@ -127,7 +128,7 @@ extern void s4295255_servo_setangle(int angle) {
 	//get the required pulse width
 	PWMConfig.Pulse = ((1/90.0*p_angle) + 0.45)*500000/1000;	
 	/* Enable PWM for Timer 2, channel 4 */
-	HAL_TIM_PWM_Init(&TIM_Init);	
+	//HAL_TIM_PWM_Init(&TIM_Init);	
 	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_4);	
 
 
@@ -159,7 +160,7 @@ extern void s4295255_servo_settiltangle(int angle) {
 	//get the required pulse width
 	PWMConfig.Pulse = ((1/90.0*t_angle) + 0.45)*500000/1000;	
 	/* Enable PWM for Timer 2, channel 4 */
-	HAL_TIM_PWM_Init(&TIM_Init);	
+
 	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_3);	
 
 

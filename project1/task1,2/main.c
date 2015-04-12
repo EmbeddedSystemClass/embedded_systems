@@ -418,7 +418,8 @@ void exti_pb_interrupt_handler(void) {
 
 //get the new value of the angle that needs to be changed
 void set_new_panangle(uint16_t adc_x_value) {
-
+	//Delay(20000);
+	
 	//setting the value of the pan angle according to the value from x - axis
 		if(adc_x_value < 1960) {
 
@@ -446,7 +447,7 @@ void set_new_panangle(uint16_t adc_x_value) {
 }
 
 void set_new_tiltangle(uint16_t adc_y_value) {
-
+	//Delay(20000);
 	//setting the value of the tilt angle according to the value from y - axis
 		if(adc_y_value < 2000) {
 
@@ -468,7 +469,6 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 			}
 			
 			s4295255_servo_settiltangle(tilt_angle);
-
 		}
 
 }
