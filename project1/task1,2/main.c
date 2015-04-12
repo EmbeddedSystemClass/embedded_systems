@@ -41,10 +41,14 @@ int time_period = 0;
 int syn = 0;
 int current_period;
 int flag = 0;
+uint8_t current_bit;
+int capture_next = 0;
+uint8_t test;
+int edges = 0;
 
 
-int pan_angle = 0; //angle of the servo
-int tilt_angle = 75;
+int pan_angle = -12; //angle of the servo
+int tilt_angle = 72;
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
 int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
 			   //RF wont work. Toggled by *. 
@@ -242,6 +246,9 @@ void main(void) {
 
 					//add start and stop bits : to be done when the modulating starts : done
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
+						 //Start Input Capture 
+	HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+
 					for(i = 0; i < encoded_data_ptr; i++) {
 
 						s4295255_manchester_byte_encode(encoded_data[i]);
@@ -273,12 +280,13 @@ void main(void) {
 
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d  %d\n", pan_angle, tilt_angle, syn); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d  %d  %x   %d\n", pan_angle, tilt_angle, test, l_packet[0], edges); //printing out the angles to the console
 		}
 
 		print_counter++;
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
     	Delay(0x7FFF00/10);	//Delay function
+		
 	}
 }
 
@@ -337,8 +345,7 @@ void Hardware_init(void) {
 	HAL_TIM_IC_Init(&TIM_Initi);
 	HAL_TIM_IC_ConfigChannel(&TIM_Initi, &TIM_ICInitStructure, TIM_CHANNEL_2);
 
-	 //Start Input Capture 
-	HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+
 
 
 	
@@ -444,98 +451,114 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 
 }
 
-/*
-void exti_d0_interrupt_handler(void){
 
-	
-     debug_printf("Detected change in edge at %x\n", HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN) );
-		
-	/*bit_count++;
-
-	if(bit_count == 1) {
-		
-		 //ignore first start bit
-
-	} else if(bit_count == 2) {
-
-
-		 //ignore second start bit
-
-	} else {
-
-		uint8_t pin_state = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN) << (bit_count - 3);
-		l_packet[byte_count] |= pin_state;
-
-		if(bit_count == 11) {
-
-			bit_count = 0;
-			if(byte_count == 0) {
-
-				byte_count++;
-
-			} else {
-
-				byte_count = 0;
-				//debug_printf("RECEIVED FROM LASER: %x, %x\n", l_packet[0], l_packet[1]);
-				//l_packet[0] = 0xFF;
-				//l_packet[1] = 0xFF;
-			}
-		}
-	
-
-
-	} 
-
-	
-
-
-	HAL_GPIO_EXTI_IRQHandler(BRD_D0_PIN);				//Clear PB pin external interrupt flag
-	
-	
-}
-*/
 
 void tim3_irqhandler (void) {
 
-	/* Toggle LED */		
-	//BRD_LEDToggle();
-	if(flag == 0) {
+
 	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
-	flag = 1;
+
+	if(bit_count >= 8) {
+
+
+				
+
+} else 
+
+/*
+	if(flag == 0) {
+		edges++;
+		flag = 1;
 
 	}
 
-	else {
-	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
-	
-  	/* Read and display the Input Capture value of Timer 3, channel 2 */
+	else { */
 
-	if(syn == 0) {
-		//debug_printf("IC : %d  %d\n", time_period, prev_count );
-		if(prev_count == 0 || prev_count < 10) {
+		if(syn == 0) {
+		//debug_printf("IC : %d  %d\n", time_period, count );
+			edges++;
+			if(prev_count == 0) {
 
-			prev_count = count;
-
-		} else if(time_period < 50 || time_period > 1000) {
-
-			time_period = count - prev_count;
-			prev_count = count;
-
-		} else {
-
-			
-			current_period = count - prev_count;
-			if(count < prev_count)
-				current_period +=10000;
-			if((current_period) > (time_period - 30) && (current_period) < (time_period + 30))
-				syn = 1;
-			else
 				prev_count = count;
 
-		}
-	} 
+			} else if(time_period == 0) {
 
-	}
+				time_period = count - prev_count;
+				if(count < prev_count)
+					time_period +=10000;
+				prev_count = count;
+
+			} else {
+
+
+				
+			
+
+				current_period = (count - prev_count) % 10000;
+				if(count < prev_count)
+					current_period +=10000;
+				if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
+					syn = 1;	
+					current_bit = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN);
+					test = current_bit;
+					prev_count = count;
+					
+				}
+				else
+					prev_count = count;
+
+			}
+		} else {
+			current_period = (count - prev_count) % 10000;
+			if(current_period < 0)
+					current_period +=10000;
+			if(capture_next == 1) {
+
+				prev_count = count;
+
+				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
+				//debug_printf("Current bit : %d\n", current_bit );
+				//test[bit_count] = current_bit;
+				capture_next = 0;
+				bit_count++;
+
+
+			} else if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
+
+				capture_next = 1;
+				prev_count = count;
+				
+
+			} else {
+
+				prev_count = count;
+				current_bit =  !(current_bit);
+				//debug_printf("Current bit : %d\n", current_bit );
+				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
+				//test[bit_count] = current_bit;
+				bit_count++;
+			
+			
+			}
+
+
+		}
+			if(bit_count >= 8) {
+
+				/*bit_count = 0;
+				byte_count++;
+				syn = 0;
+				flag = 0;
+				time_period = 0;
+				count = 0;
+				prev_count = 0;
+				*/
+
+			}
+
+		
+
+	//}
 
 		//Clear Input Capture Flag
 	__HAL_TIM_CLEAR_IT(&TIM_Initi, TIM_IT_TRIGGER);
