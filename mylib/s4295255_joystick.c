@@ -89,20 +89,22 @@ extern void s4295255_joystick_init(void) {
 	
 	
 	
-	/* Set priority of external GPIO Interrupt [0 (HIGH priority) to 15(LOW priority)] */
-	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3 */
+	/* Set priority of external GPIO Interrupt [0 (HIGH priority) to 15(LOW priority)]
+	/* 	DO NOT SET INTERRUPT PRIORITY HIGHER THAN 3
 	HAL_NVIC_SetPriority(BRD_A2_EXTI_IRQ, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0
 
 	//Enable external GPIO interrupt and interrupt vector for pin DO
 	NVIC_SetVector(BRD_A2_EXTI_IRQ, (uint32_t)&exti_a2_interrupt_handler);  
 	NVIC_EnableIRQ(BRD_A2_EXTI_IRQ);
 
-  	/* Configure D0 pin as pull down input */
+  	/* Configure D0 pin as pull down input 
 	GPIO_InitStructure.Pin = BRD_A2_PIN;				//Pin
   	GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING;		//interrupt Mode
   	GPIO_InitStructure.Pull = GPIO_PULLUP;			//Enable Pull up, down or no pull resister
   	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
   	HAL_GPIO_Init(BRD_A1_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
+
+	*/
 	
 }
 

@@ -29,20 +29,36 @@ uint8_t source_addr[] = {0x00,0x42, 0x95, 0x25, 0x56};
 char packet_type = 0xA1;
 char payload[19];
 uint8_t packet[32]; //packet to be sent
-uint8_t r_packet[32]; //packet to be recieved
+uint8_t r_packet[32]; //packet to be recieved via radio
+uint8_t l_packet[2] = {0x00, 0x00}; //packet recieved via laser
+int bit_count = 0; //count of the bits recieved via laser
+int byte_count = 0; //count of the bytes recieved via laser
+uint32_t l_word = 0xFFFF; 
+
+unsigned int prev_count = 0;
+unsigned int count = 0; 
+int time_period = 0;
+int syn = 0;
+int current_period;
+int flag = 0;
+
 
 int pan_angle = 0; //angle of the servo
-int tilt_angle = 0;
+int tilt_angle = 75;
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
 int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
 			   //RF wont work. Toggled by *. 
+int laser_receiver = 0; //0 when not receiving 
 int data_length = 0; //length of the data recieved from the terminal
+
+TIM_HandleTypeDef TIM_Initi;
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
 void Hardware_init();
 void set_new_panangle(uint16_t adc_x_value);
 void set_new_tiltangle(uint16_t adc_y_value);
+void tim3_irqhandler (void);
 int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
 
 
@@ -79,19 +95,19 @@ void main(void) {
 
 				if(RxChar == 'w') {
 
-					set_new_tiltangle(2061);
+					set_new_tiltangle(2081);
 
 				} else if(RxChar == 's') {
 
-					set_new_tiltangle(2019);
+					set_new_tiltangle(1999);
 
 				} else if(RxChar == 'a') {
 
-					set_new_panangle(2026);
+					set_new_panangle(2051);
 
 				} else if(RxChar == 'd') {
 
-					set_new_panangle(1994);
+					set_new_panangle(1959);
 
 				}
 
@@ -103,12 +119,12 @@ void main(void) {
 
 #ifdef DEBUG		
 			/* Print ADC conversion values */
-			if(adc_x_value > 2025 || adc_x_value < 1995) {
+			if(adc_x_value > 2050 || adc_x_value < 1960) {
 			
 				debug_printf("ADC X Value: %d\n", adc_x_value);
 
 			}
-			if(adc_y_value > 2060 || adc_y_value < 2020) {
+			if(adc_y_value > 2080 || adc_y_value < 2000) {
 			
 				debug_printf("ADC Y Value: %d\n", adc_y_value);
 
@@ -257,7 +273,7 @@ void main(void) {
 
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d\n", pan_angle, tilt_angle); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d  %d\n", pan_angle, tilt_angle, syn); //printing out the angles to the console
 		}
 
 		print_counter++;
@@ -273,7 +289,8 @@ void main(void) {
   */
 void Hardware_init(void) {
 
-
+	/* Timer 3 clock enable */
+  	__TIM3_CLK_ENABLE();
 
 	s4295255_joystick_init();
 	s4295255_pushbutton_init();
@@ -284,7 +301,46 @@ void Hardware_init(void) {
 	s4295255_radio_settxaddress(destination_addr);
 	s4295255_radio_setchan(CHANNEL);
 	s4295255_laser_init();
+
+	TIM_IC_InitTypeDef  TIM_ICInitStructure;
+	uint16_t PrescalerValue = 0;
+
+
 	
+
+
+		// Compute the prescaler value. SystemCoreClock = 168000000 - set for 50Khz clock 
+  	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 50000) - 1;
+
+	// Configure Timer 3 settings 
+	TIM_Initi.Instance = TIM3;					//Enable Timer 3
+  	TIM_Initi.Init.Period = 2*50000/10;			//Set for 100ms (10Hz) period
+  	TIM_Initi.Init.Prescaler = PrescalerValue;	//Set presale value
+  	TIM_Initi.Init.ClockDivision = 0;			//Set clock division
+	TIM_Initi.Init.RepetitionCounter = 0; 		// Set Reload Value
+  	TIM_Initi.Init.CounterMode = TIM_COUNTERMODE_UP;	//Set timer to count up.
+	
+	//Configure TIM3 Input capture 
+  	TIM_ICInitStructure.ICPolarity = TIM_ICPOLARITY_BOTHEDGE;			//Set to trigger on rising edge
+  	TIM_ICInitStructure.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  	TIM_ICInitStructure.ICPrescaler = TIM_ICPSC_DIV1;
+  	TIM_ICInitStructure.ICFilter = 0;
+
+	// Set priority of Timer 3 Interrupt [0 (HIGH priority) to 15(LOW priority)] 
+	HAL_NVIC_SetPriority(TIM3_IRQn, 10, 0);	//Set Main priority ot 10 and sub-priority ot 0.
+
+	//Enable Timer 3 interrupt and interrupt vector
+	NVIC_SetVector(TIM3_IRQn, (uint32_t)&tim3_irqhandler);  
+	NVIC_EnableIRQ(TIM3_IRQn);
+
+	// Enable input capture for Timer 3, channel 2 
+	HAL_TIM_IC_Init(&TIM_Initi);
+	HAL_TIM_IC_ConfigChannel(&TIM_Initi, &TIM_ICInitStructure, TIM_CHANNEL_2);
+
+	 //Start Input Capture 
+	HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+
+
 	
 }
 
@@ -335,7 +391,7 @@ void exti_pb_interrupt_handler(void) {
 void set_new_panangle(uint16_t adc_x_value) {
 
 	//setting the value of the pan angle according to the value from x - axis
-		if(adc_x_value < 1995) {
+		if(adc_x_value < 1960) {
 
 			pan_angle = pan_angle - 1;
 			if(pan_angle < -75) {
@@ -345,7 +401,7 @@ void set_new_panangle(uint16_t adc_x_value) {
 			}
 			s4295255_servo_setangle(pan_angle);
 			
-		} else if(adc_x_value > 2025) {
+		} else if(adc_x_value > 2050) {
 
 			pan_angle = pan_angle + 1;
 			if(pan_angle > 75) {
@@ -363,7 +419,7 @@ void set_new_panangle(uint16_t adc_x_value) {
 void set_new_tiltangle(uint16_t adc_y_value) {
 
 	//setting the value of the tilt angle according to the value from y - axis
-		if(adc_y_value < 2020) {
+		if(adc_y_value < 2000) {
 
 			tilt_angle = tilt_angle - 1;
 			if(tilt_angle < -85) {
@@ -373,7 +429,7 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 			}
 			s4295255_servo_settiltangle(tilt_angle);
 			
-		} else if(adc_y_value > 2060) {
+		} else if(adc_y_value > 2080) {
 
 			tilt_angle = tilt_angle + 1;
 			if(tilt_angle > 75) {
@@ -388,8 +444,106 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 
 }
 
+/*
+void exti_d0_interrupt_handler(void){
+
+	
+     debug_printf("Detected change in edge at %x\n", HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN) );
+		
+	/*bit_count++;
+
+	if(bit_count == 1) {
+		
+		 //ignore first start bit
+
+	} else if(bit_count == 2) {
 
 
+		 //ignore second start bit
+
+	} else {
+
+		uint8_t pin_state = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN) << (bit_count - 3);
+		l_packet[byte_count] |= pin_state;
+
+		if(bit_count == 11) {
+
+			bit_count = 0;
+			if(byte_count == 0) {
+
+				byte_count++;
+
+			} else {
+
+				byte_count = 0;
+				//debug_printf("RECEIVED FROM LASER: %x, %x\n", l_packet[0], l_packet[1]);
+				//l_packet[0] = 0xFF;
+				//l_packet[1] = 0xFF;
+			}
+		}
+	
+
+
+	} 
+
+	
+
+
+	HAL_GPIO_EXTI_IRQHandler(BRD_D0_PIN);				//Clear PB pin external interrupt flag
+	
+	
+}
+*/
+
+void tim3_irqhandler (void) {
+
+	/* Toggle LED */		
+	//BRD_LEDToggle();
+	if(flag == 0) {
+	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
+	flag = 1;
+
+	}
+
+	else {
+	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
+	
+  	/* Read and display the Input Capture value of Timer 3, channel 2 */
+
+	if(syn == 0) {
+		//debug_printf("IC : %d  %d\n", time_period, prev_count );
+		if(prev_count == 0 || prev_count < 10) {
+
+			prev_count = count;
+
+		} else if(time_period < 50 || time_period > 1000) {
+
+			time_period = count - prev_count;
+			prev_count = count;
+
+		} else {
+
+			
+			current_period = count - prev_count;
+			if(count < prev_count)
+				current_period +=10000;
+			if((current_period) > (time_period - 30) && (current_period) < (time_period + 30))
+				syn = 1;
+			else
+				prev_count = count;
+
+		}
+	} 
+
+	}
+
+		//Clear Input Capture Flag
+	__HAL_TIM_CLEAR_IT(&TIM_Initi, TIM_IT_TRIGGER);
+
+
+
+
+}
 		
 
 
