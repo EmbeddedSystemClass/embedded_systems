@@ -280,7 +280,7 @@ void main(void) {
 
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d  %d  %x   %d\n", pan_angle, tilt_angle, test, l_packet[0], edges); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d  %d  %x   %x\n", pan_angle, tilt_angle, test, l_packet[0], l_packet[1]); //printing out the angles to the console
 		}
 
 		print_counter++;
@@ -455,111 +455,97 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 
 void tim3_irqhandler (void) {
 
-
+	edges++;
 	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
 
-	if(bit_count >= 8) {
-
-
-				
-
-} else 
-
-/*
-	if(flag == 0) {
-		edges++;
-		flag = 1;
-
-	}
-
-	else { */
-
-		if(syn == 0) {
-		//debug_printf("IC : %d  %d\n", time_period, count );
-			edges++;
-			if(prev_count == 0) {
-
-				prev_count = count;
-
-			} else if(time_period == 0) {
-
-				time_period = count - prev_count;
-				if(count < prev_count)
-					time_period +=10000;
-				prev_count = count;
-
-			} else {
-
-
-				
-			
-
-				current_period = (count - prev_count) % 10000;
-				if(count < prev_count)
-					current_period +=10000;
-				if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
-					syn = 1;	
-					current_bit = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN);
-					test = current_bit;
-					prev_count = count;
-					
-				}
-				else
-					prev_count = count;
-
-			}
-		} else {
-			current_period = (count - prev_count) % 10000;
-			if(current_period < 0)
-					current_period +=10000;
-			if(capture_next == 1) {
-
-				prev_count = count;
-
-				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
-				//debug_printf("Current bit : %d\n", current_bit );
-				//test[bit_count] = current_bit;
-				capture_next = 0;
-				bit_count++;
-
-
-			} else if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
-
-				capture_next = 1;
-				prev_count = count;
-				
-
-			} else {
-
-				prev_count = count;
-				current_bit =  !(current_bit);
-				//debug_printf("Current bit : %d\n", current_bit );
-				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
-				//test[bit_count] = current_bit;
-				bit_count++;
-			
-			
-			}
-
-
-		}
-			if(bit_count >= 8) {
-
-				/*bit_count = 0;
-				byte_count++;
-				syn = 0;
-				flag = 0;
-				time_period = 0;
-				count = 0;
-				prev_count = 0;
-				*/
-
-			}
+	if(bit_count == 8) {
 
 		
+		bit_count = 0;
+		byte_count = !byte_count;
+		syn = 0;
+		time_period = 0;
+		count = 0;
+		prev_count = 0;
+		test = edges;
+		edges = 0;
+		
 
-	//}
 
+
+	} else 
+
+
+
+	if(syn == 0) {
+		//debug_printf("IC : %d  %d\n", time_period, count );
+		//edges++;
+		if(prev_count == 0) {
+
+			prev_count = count;
+
+		} else if(time_period == 0) {
+				
+			time_period = count - prev_count;
+			prev_count = count;
+
+		} else {
+
+			current_period = (count - prev_count) % 10000;
+			
+			if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
+				syn = 1;	
+				current_bit = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN);
+
+				prev_count = count;
+					
+			}
+			else
+				prev_count = count;
+
+		}
+
+	} else {
+		current_period = (count - prev_count) % 10000;
+		
+		if(capture_next == 1) {
+
+			prev_count = count;
+				
+			if(bit_count != 8)
+				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
+			else {
+					//stop bit 
+			}
+			capture_next = 0;
+			bit_count++;
+
+
+		} else if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
+
+			capture_next = 1;
+			prev_count = count;
+				
+
+		} else {
+
+			prev_count = count;
+			current_bit =  !(current_bit);
+			if(bit_count !=8)
+				l_packet[byte_count] = l_packet[byte_count] | (current_bit << bit_count);
+			else {
+					
+					//stop bit
+
+			}
+			bit_count++;
+			
+			
+		}
+
+
+	}
+			
 		//Clear Input Capture Flag
 	__HAL_TIM_CLEAR_IT(&TIM_Initi, TIM_IT_TRIGGER);
 
