@@ -21,11 +21,13 @@
 
 int error_count = 0;
 int error_corrected = 0;
+int lower = 1;
 /* Includes ------------------------------------------------------------------*/
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
 #include "s4295255_radio.h"
+#include "s4295255_hamming.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -108,6 +110,7 @@ extern unsigned char s4295255_hamming_decode(unsigned short hword){
 	unsigned char lsb = hamming_byte_decode(hword & 0xFF);
 	unsigned char msb = hamming_byte_decode(hword >> 8);
 
+
 		
 	if(lsb == -1 || msb == -1) 
 		return -1;
@@ -147,10 +150,19 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 	switch(s){
 		case 0: 
+			lower = !(lower);
 			return ( d0 | (d1 << 1) | (d2 <<2) | (d3 << 3) );
 		
 		case 1: 
 			hbyte ^= 1 << 6;
+			if(lower){
+				err_mask ^= 1 << 6;
+
+			} else {
+				err_mask ^= 1 << 14;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -161,6 +173,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 	    case 2:
 			hbyte ^= 1 << 5;
+			if(lower){
+				err_mask ^= 1 << 5;
+
+			} else {
+				err_mask ^= 1 << 13;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -171,6 +191,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 3:
 			 d0 = !d0;
+			if(lower){
+				err_mask ^= 1 << 1;
+
+			} else {
+				err_mask ^= 1 << 9;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -182,6 +210,15 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 4:
 			hbyte ^= 1 << 4;
+			if(lower){
+				err_mask ^= 1 << 4;
+
+			} else {
+				err_mask ^= 1 << 12;
+
+			}
+
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -193,6 +230,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 5:
 			d1 = !d1;
+			if(lower){
+				err_mask ^= 1 << 2;
+
+			} else {
+				err_mask ^= 1 << 10;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -204,6 +249,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 6:
 			d2 = !d2;
+			if(lower){
+				err_mask ^= 1 << 3;
+
+			} else {
+				err_mask ^= 1 << 11;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	
@@ -214,6 +267,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 7:
 			d3 = !d3;
+			if(lower){
+				err_mask ^= 1 << 4;
+
+			} else {
+				err_mask ^= 1 << 12;
+
+			}
+			lower = !(lower);
 			error_count ++;
 			if(check_parity(hbyte)){
 				error_corrected++;	

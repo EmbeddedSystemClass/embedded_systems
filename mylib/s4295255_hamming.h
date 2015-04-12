@@ -27,7 +27,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-
+extern uint16_t err_mask;
 /* Private function prototypes -----------------------------------------------*/
 
 extern uint16_t s4295255_hamming_encode(unsigned char hbyte);

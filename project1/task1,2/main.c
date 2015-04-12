@@ -56,6 +56,7 @@ int laser = 0; //to activate(1) or deactivate(0) transmission through laser, whe
 			   //RF wont work. Toggled by *. 
 int laser_receiver = 0; //0 when not receiving 
 int data_length = 0; //length of the data recieved from the terminal
+uint16_t err_mask = 0x0000;
 
 TIM_HandleTypeDef TIM_Initi;
 
@@ -297,7 +298,7 @@ void main(void) {
 		if(laser_received){
 			decoded_laser_byte = s4295255_hamming_decode(l_packet[1] << 8 | l_packet[0]);
 			Delay(0x7FFF00/20);
-			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x\n", decoded_laser_byte, l_packet[1], l_packet[0]);
+			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x  (ErrMask %04x)\n", decoded_laser_byte, l_packet[1], l_packet[0], err_mask);
 			l_packet[0] = 0x00;
 			l_packet[1] = 0x00;
 			laser_received = 0;
@@ -579,12 +580,6 @@ void tim3_irqhandler (void) {
 }
 
 
-void go_sync(){
-
-	
-
-
-}
 		
 
 
