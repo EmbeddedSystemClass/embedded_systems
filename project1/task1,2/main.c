@@ -36,11 +36,13 @@ int byte_count = 0; //count of the bytes recieved via laser
 int counter = 0;
 int delay1 =20000;
 
+
 unsigned int prev_count = 0;
 unsigned int count = 0; 
 int time_period = 0;
 int syn = 0;
 int current_period;
+int speed_mode = 0; //switch on to show challenge 8
 
 uint8_t current_bit;
 int capture = 0;
@@ -53,6 +55,8 @@ int byte_counts[128];
 int byte_count_ptr = 0;
 int prev_ptr = -1;
 int flag = 0;
+int retransmission = 0; //used for duplex communication
+char temp; //char for retransmission
 
 
 int pan_angle = 17; //angle of the servo
@@ -100,13 +104,14 @@ void main(void) {
 
   	while (1) {
 
+		HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
 		if(prev_ptr == byte_count_ptr && counter == 50 && flag == 0) {
 
 			
 			//debug_printf("All counts received %d\n", byte_count_ptr); //can decode once this happens
 			counter = 0;
 
-			HAL_TIM_Base_Stop_IT(&TIM_Initi);
+			
 			manchester_decode();
 			prev_ptr = -1;
 	
@@ -183,6 +188,7 @@ void main(void) {
 					
 					if(RxChar == 42) { //toggles the use of laser
 						laser = !(laser);
+						retransmission = 0;
 #ifdef DEBUG
 						debug_printf("Toggled the laser\n");
 #endif
@@ -192,7 +198,12 @@ void main(void) {
 						delay1 = 20000;
 						debug_printf("Data rate set at 1K bits/sec\n");
 							
-					} else if(RxChar == 64) {
+					} else if(RxChar == 35) {
+						
+						debug_printf("Speed mode toggled\n");
+						speed_mode = !(speed_mode);
+
+					}else if(RxChar == 64) {
 
 						delay1 = 9000;
 						debug_printf("Data rate set at 2K bits/sec\n");
@@ -250,6 +261,8 @@ void main(void) {
 
 
 				if(!laser) {
+					if(retransmission)
+						laser = 1;
 #ifdef DEBUG
 					debug_printf("Sending : ");
 					for(i = 0; i < 32; i++) { 
@@ -264,7 +277,7 @@ void main(void) {
 #ifdef DEBUG
 						debug_printf("Sending via laser :");
 #endif					
-
+						temp = payload[i];
 #ifdef DEBUG
 
 					for(i = 0; i < data_length; i++) { 
@@ -293,7 +306,7 @@ void main(void) {
 					//add start and stop bits : to be done when the modulating starts : done
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
 						 //Start Input Capture 
-					HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+
 
 					for(i = 0; i < encoded_data_ptr; i++) {
 
@@ -320,9 +333,28 @@ void main(void) {
 
 			for(i = 0; i < 32; i++) { 
 
-				debug_printf("%c ", r_packet[i]);
+				debug_printf("%x ", r_packet[i]);
 				Delay(0x7FFF00/20);
 			}
+
+			char error[6];
+			error[0] = r_packet[9];
+			error[1] = r_packet[10];
+			error[2] = r_packet[11];
+			error[3] = r_packet[12];
+			error[4] = r_packet[13];
+			error[5] = '\0';
+
+			if(!strcmp(error, "ERROR")){
+				payload[i] = temp;
+				for(i=1; i < 19; i++)
+					payload[i] = '\0';
+					payload_ptr = 19;
+
+
+			}
+
+			
 		
 				debug_printf("\n");
 		}
@@ -337,6 +369,34 @@ void main(void) {
 			decoded_laser_byte = s4295255_hamming_decode(l_packet[1] << 8 | l_packet[0]);
 			Delay(0x7FFF00/20);
 			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x  (ErrMask %04x)\n", decoded_laser_byte, l_packet[1], l_packet[0], err_mask);
+			if(speed_mode == 1 && err_mask == 0x0000) {
+					delay1-=2000;
+					debug_printf("Increase the speed of the laser\n");
+			} else if(speed_mode == 1) {
+
+				delay1+=2000;
+				debug_printf("Decrease the speed of the laser\n");
+
+			} else {
+			if(err_mask == 0xFFFF) {
+				
+				payload[0] = 'E';
+				payload[1] = 'R';
+				payload[2] = 'R';
+				payload[3] = 'O';
+				payload[4] = 'R';
+				for(i=5; i < 19; i++)
+					payload[i] = '\0';
+
+			} else {
+				payload[0] = decoded_laser_byte;
+				for(i=1; i < 19; i++)
+					payload[i] = '\0';
+			}
+			payload_ptr = 19;
+			retransmission = 1;
+			laser = 0;
+			}
 			l_packet[0] = 0x00;
 			l_packet[1] = 0x00;
 			laser_received = 0;
@@ -350,6 +410,7 @@ void main(void) {
 		}
 
 		print_counter++;
+		HAL_TIM_Base_Stop_IT(&TIM_Initi);
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
     	Delay(0x7FFF00/10);	//Delay function
 		
@@ -543,10 +604,26 @@ void tim3_irqhandler (void) {
 void manchester_decode(){
 
  int i = 0;
+err_mask = 0x0000;
 for(; i < byte_count_ptr; i++) {
 	count = byte_counts[i];
 	if(syn == 0) {
+		edges++;
 		debug_printf("IC : %d  %d\n", time_period, count );
+		if(edges > 3) {
+			
+			prev_count = 0;
+			count = 0;
+			syn = 0;
+			bit_count = 0;
+			byte_count = !(byte_count);
+			capture = 0;
+			time_period = 0;
+			edges = 0;
+			err_mask = 0xFF00;
+			break;
+
+		}
 
 
 		if(prev_count == 0) {
@@ -565,7 +642,7 @@ for(; i < byte_count_ptr; i++) {
 			current_period = (count - prev_count) % 10000;
 			
 
-			if((current_period) > (time_period - 5) && (current_period) < (time_period + 5)){
+			if((current_period) > (time_period - time_period/2) && (current_period) < (time_period + time_period/2)){
 				syn = 1;	
 				current_bit = 0x01;
 				prev_count = count;
@@ -588,7 +665,7 @@ for(; i < byte_count_ptr; i++) {
 		debug_printf("Current_period : %d\n", current_period);
 		Delay(0x7FFF00/20);
 #endif
-		if((current_period > (time_period - 5)) && (current_period < (time_period + 5))){
+		if((current_period > (time_period - time_period/2)) && (current_period < (time_period + time_period/2))){
 
 
 			
@@ -652,7 +729,7 @@ for(; i < byte_count_ptr; i++) {
 			syn = 0;
 			bit_count = 0;
 			byte_count = !(byte_count);
-
+			edges = 0;
 			capture = 0;
 			time_period = 0;
 
