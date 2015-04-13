@@ -33,6 +33,8 @@ uint8_t r_packet[32]; //packet to be recieved via radio
 uint8_t l_packet[2] = {0x00, 0x00}; //packet recieved via laser
 int bit_count = 0; //count of the bits recieved via laser
 int byte_count = 0; //count of the bytes recieved via laser
+int counter = 0;
+int delay1 =20000;
 
 unsigned int prev_count = 0;
 unsigned int count = 0; 
@@ -47,10 +49,14 @@ int edges = 0;
 int laser_received = 0; //to indicate if received from laser
 char decoded_laser_byte;
 uint16_t test_p;
+int byte_counts[128];
+int byte_count_ptr = 0;
+int prev_ptr = -1;
+int flag = 0;
 
 
-int pan_angle = -12; //angle of the servo
-int tilt_angle = 72;
+int pan_angle = 17; //angle of the servo
+int tilt_angle = 75;
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
 int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
 			   //RF wont work. Toggled by *. 
@@ -67,6 +73,7 @@ void set_new_panangle(uint16_t adc_x_value);
 void set_new_tiltangle(uint16_t adc_y_value);
 void tim3_irqhandler (void);
 void go_sync(void);
+void manchester_decode(void);
 int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
 
 
@@ -93,8 +100,29 @@ void main(void) {
 
   	while (1) {
 
+		if(prev_ptr == byte_count_ptr && counter == 50 && flag == 0) {
+
+			
+			//debug_printf("All counts received %d\n", byte_count_ptr); //can decode once this happens
+			counter = 0;
+
+			HAL_TIM_Base_Stop_IT(&TIM_Initi);
+			manchester_decode();
+			prev_ptr = -1;
+	
+
+			
+
+		} else {
+
+			prev_ptr = byte_count_ptr;
+			counter++;
+			if(counter > 50)
+				counter = 0;
+			
+
 		
-		
+		}
 
 		
 		//r_packet[0] = 0x1;
@@ -158,6 +186,16 @@ void main(void) {
 #ifdef DEBUG
 						debug_printf("Toggled the laser\n");
 #endif
+
+					} else if(RxChar == 33) {
+						
+						delay1 = 20000;
+						debug_printf("Data rate set at 1K bits/sec\n");
+							
+					} else if(RxChar == 64) {
+
+						delay1 = 9000;
+						debug_printf("Data rate set at 2K bits/sec\n");
 
 					} else {
 								
@@ -302,6 +340,12 @@ void main(void) {
 			l_packet[0] = 0x00;
 			l_packet[1] = 0x00;
 			laser_received = 0;
+			byte_count_ptr = 0;
+			for( i = 0; i < 128; i++) {
+				
+				byte_counts[i] = 0;
+
+			}
 
 		}
 
@@ -478,107 +522,158 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 void tim3_irqhandler (void) {
 
 
-	count = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
-
-	if(syn == 0) {
-//		debug_printf("IC : %d  %d\n", time_period, count );
 
 
-		if(prev_count == 0) {
 
-			prev_count = count;
-
-		} else if(time_period == 0) {
-				
-			time_period = count - prev_count;
-			prev_count = count;
-
-		} else {
-
-			current_period = (count - prev_count) % 10000;
-			
-			if((current_period) > (time_period - 30) && (current_period) < (time_period + 30)){
-				syn = 1;	
-				current_bit = HAL_GPIO_ReadPin(BRD_D0_GPIO_PORT, BRD_D0_PIN);
-				prev_count = count;
-					
-			} else {
-				prev_count = count;
-
-			}
-
-		} 
-
-
-	} else {
-		current_period = (count - prev_count) % 10000;
-
-		if((current_period > (time_period - 30)) && (current_period < (time_period + 30))){
-
-			
-			if(capture){
-
-				if(bit_count < 8)
-					l_packet[byte_count] |= (current_bit << bit_count);
-				capture = !(capture);
-				bit_count++;
-
-			} else {
-
-				capture = 1;
-
-			}
-
-			prev_count = count;
-				
-
-		} else {
-
-
-			current_bit =  !(current_bit);
-			if(bit_count < 8)
-				l_packet[byte_count] |=  (current_bit << bit_count);
-			bit_count++;
-			prev_count =count;
-
-			
-			
-		}
-
-		if(bit_count == 9) { //reinitialise everything for the second word
-
-			if(byte_count == 1){
-				HAL_TIM_Base_Stop_IT(&TIM_Initi);
-				laser_received = 1;
-
-			}
-
-			edges++;
-			prev_count = 0;
-			count = 0;
-			syn = 0;
-			bit_count = 0;
-			byte_count = !(byte_count);
-			capture = 0;
-			time_period = 0;
-
-
-		}
+	byte_counts[byte_count_ptr++] = HAL_TIM_ReadCapturedValue(&TIM_Initi, TIM_CHANNEL_2);
 
 	
-		
-
-
-	}
-			
 		//Clear Input Capture Flag
 	__HAL_TIM_CLEAR_IT(&TIM_Initi, TIM_IT_TRIGGER);
 
 
 
 
+
+
+
 }
 
+
+void manchester_decode(){
+
+ int i = 0;
+for(; i < byte_count_ptr; i++) {
+	count = byte_counts[i];
+	if(syn == 0) {
+		debug_printf("IC : %d  %d\n", time_period, count );
+
+
+		if(prev_count == 0) {
+
+			prev_count = count;
+
+
+		} else if(time_period == 0) {
+				
+			time_period = count - prev_count;
+			prev_count = count;
+
+
+		} else {
+
+			current_period = (count - prev_count) % 10000;
+			
+
+			if((current_period) > (time_period - 5) && (current_period) < (time_period + 5)){
+				syn = 1;	
+				current_bit = 0x01;
+				prev_count = count;
+					
+
+			} else {
+				prev_count = count;
+
+			}
+
+
+		} 
+
+
+	} else {
+
+		current_period = (count - prev_count) % 10000;
+
+#ifdef DEBUG
+		debug_printf("Current_period : %d\n", current_period);
+		Delay(0x7FFF00/20);
+#endif
+		if((current_period > (time_period - 5)) && (current_period < (time_period + 5))){
+
+
+			
+			if(capture){
+
+				if(bit_count < 8)
+
+					l_packet[byte_count] |= (current_bit << bit_count);
+
+#ifdef DEBUG
+				debug_printf("current bit : %d %d\n", current_bit, bit_count);
+				Delay(0x7FFF00/20);
+#endif
+				capture = !(capture);
+				bit_count++;
+
+			} else {
+
+
+				capture = 1;
+
+			}
+
+
+			prev_count = count;
+
+				
+
+		} else {
+
+
+
+			current_bit =  !(current_bit);
+#ifdef DEBUG
+				debug_printf("current bit : %d %d\n", current_bit, bit_count);
+				Delay(0x7FFF00/20);
+#endif
+			if(bit_count < 8)
+
+				l_packet[byte_count] |=  (current_bit << bit_count);
+			bit_count++;
+			prev_count =count;
+
+			
+
+			
+		}
+
+		if(bit_count == 9) { //reinitialise everything for the second word
+
+
+			if(byte_count == 1){
+				laser_received = 1;
+
+
+			}
+
+			prev_count = 0;
+
+			count = 0;
+			syn = 0;
+			bit_count = 0;
+			byte_count = !(byte_count);
+
+			capture = 0;
+			time_period = 0;
+
+
+		}
+
+
+	
+		
+
+
+
+	}
+
+}
+
+byte_count_ptr = 0;
+flag = 0;
+prev_ptr = -1;
+
+}
 
 		
 

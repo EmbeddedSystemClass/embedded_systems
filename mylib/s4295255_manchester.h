@@ -28,6 +28,7 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
+extern int delay1;
 extern void s4295255_manchester_byte_encode(uint8_t data);
 
 #endif

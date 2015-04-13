@@ -60,7 +60,7 @@ extern void s4295255_laser_init(void) {
 	GPIO_InitStructure.Pin = BRD_D0_PIN;				//Pin
   	GPIO_InitStructure.Mode =GPIO_MODE_AF_PP; 		//Set mode to be output alternate
   	GPIO_InitStructure.Pull = GPIO_NOPULL;			//Enable Pull up, down or no pull resister
-  	GPIO_InitStructure.Speed = GPIO_SPEED_HIGH;			//Pin latency
+  	GPIO_InitStructure.Speed = GPIO_SPEED_LOW;			//Pin latency
 	GPIO_InitStructure.Alternate = GPIO_AF2_TIM3;	//Set alternate function to be timer 2
   	HAL_GPIO_Init(BRD_D0_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 

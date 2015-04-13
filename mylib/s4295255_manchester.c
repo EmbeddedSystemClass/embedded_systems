@@ -22,6 +22,7 @@
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
+#include "s4295255_manchester.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,10 +65,10 @@ extern void s4295255_manchester_byte_encode(uint8_t data) {
 }
 
 void send_zero(){
-	Delay(20000);  //0x04FF00 * is a delay of 10us
+	Delay(delay1);  //0x04FF00 * is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x01);
 
-	Delay(20000);  //0x04FF00 is a delay of 10us
+	Delay(delay1);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x00);
 
 	
@@ -75,10 +76,10 @@ void send_zero(){
 }
 
 void send_one(){
-	Delay(20000);  //0x04FF00 is a delay of 10us
+	Delay(delay1);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x00);
 
-	Delay(20000 );  //0x04FF00 is a delay of 10us
+	Delay(delay1);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x01);
 
 	
