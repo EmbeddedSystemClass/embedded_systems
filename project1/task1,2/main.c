@@ -59,7 +59,7 @@ int retransmission = 0; //used for duplex communication
 char temp; //char for retransmission
 
 
-int pan_angle = 17; //angle of the servo
+int pan_angle = -13; //angle of the servo
 int tilt_angle = 75;
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
 int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
@@ -104,7 +104,7 @@ void main(void) {
 
   	while (1) {
 
-		HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+
 		if(prev_ptr == byte_count_ptr && counter == 50 && flag == 0) {
 
 			
@@ -208,6 +208,12 @@ void main(void) {
 						delay1 = 9000;
 						debug_printf("Data rate set at 2K bits/sec\n");
 
+					}else if(RxChar == 36) { //stimulates an error packet input to reciever i.e. D0
+
+						l_packet[0] = 0xe3;
+						l_packet[1] = 0x66;
+						laser_received = 1;
+
 					} else {
 								
 						payload[payload_ptr] = RxChar;
@@ -307,12 +313,14 @@ void main(void) {
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
 						 //Start Input Capture 
 
-
+									HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
 					for(i = 0; i < encoded_data_ptr; i++) {
 
 						s4295255_manchester_byte_encode(encoded_data[i]);
 
 					}
+
+
 
 					data_length = 0;
 
@@ -370,15 +378,22 @@ void main(void) {
 			Delay(0x7FFF00/20);
 			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x  (ErrMask %04x)\n", decoded_laser_byte, l_packet[1], l_packet[0], err_mask);
 			if(speed_mode == 1 && err_mask == 0x0000) {
+
+				if(delay1 < 5000) {
+					debug_printf("Maximum speed acheived  %d\n", delay1);
+
+				} else {
 					delay1-=2000;
-					debug_printf("Increase the speed of the laser\n");
+					debug_printf("Increase the speed of the laser  %d\n", delay1);
+
+				}
 			} else if(speed_mode == 1) {
 
 				delay1+=2000;
-				debug_printf("Decrease the speed of the laser\n");
+				debug_printf("Decrease the speed of the laser %d\n", delay1);
 
 			} else {
-			if(err_mask == 0xFFFF) {
+			if(err_mask != 0x0000) {
 				
 				payload[0] = 'E';
 				payload[1] = 'R';
@@ -410,7 +425,7 @@ void main(void) {
 		}
 
 		print_counter++;
-		HAL_TIM_Base_Stop_IT(&TIM_Initi);
+
 		BRD_LEDToggle();	//Toggle 'Alive' LED on/off
     	Delay(0x7FFF00/10);	//Delay function
 		
@@ -604,13 +619,14 @@ void tim3_irqhandler (void) {
 void manchester_decode(){
 
  int i = 0;
+ int syn = 0;
 err_mask = 0x0000;
 for(; i < byte_count_ptr; i++) {
 	count = byte_counts[i];
 	if(syn == 0) {
-		edges++;
+
 		debug_printf("IC : %d  %d\n", time_period, count );
-		if(edges > 3) {
+	/*	if(edges > 3) {
 			
 			prev_count = 0;
 			count = 0;
@@ -623,10 +639,10 @@ for(; i < byte_count_ptr; i++) {
 			err_mask = 0xFF00;
 			break;
 
-		}
+		}*/
 
 
-		if(prev_count == 0) {
+	/*	if(prev_count == 0) {
 
 			prev_count = count;
 
@@ -639,14 +655,14 @@ for(; i < byte_count_ptr; i++) {
 
 		} else {
 
-			current_period = (count - prev_count) % 10000;
+			current_period = (count - prev_count) % 1000;
 			
 
-			if((current_period) > (time_period - time_period/2) && (current_period) < (time_period + time_period/2)){
-				syn = 1;	
+			if((current_period) > (time_period - time_period/3) && (current_period) < (time_period + time_period/3)){
+				
+					syn = 1;	
 				current_bit = 0x01;
-				prev_count = count;
-					
+				prev_count = count;	
 
 			} else {
 				prev_count = count;
@@ -654,18 +670,32 @@ for(; i < byte_count_ptr; i++) {
 			}
 
 
-		} 
+		} */
 
+		if(edges ==0)
+			prev_count = count;
+		else if(edges == 1) {
+			
+			prev_count = count;
+
+		} else if(edges== 2) {
+			time_period = count - prev_count;
+			prev_count = count;
+			syn = 1;
+			current_bit = 0x01;
+
+		}
+				edges++;
 
 	} else {
 
-		current_period = (count - prev_count) % 10000;
+		current_period = (count - prev_count) % 1000;
 
 #ifdef DEBUG
 		debug_printf("Current_period : %d\n", current_period);
 		Delay(0x7FFF00/20);
 #endif
-		if((current_period > (time_period - time_period/2)) && (current_period < (time_period + time_period/2))){
+		if((current_period > (time_period - time_period/3)) && (current_period < (time_period + time_period/3))){
 
 
 			
@@ -746,9 +776,12 @@ for(; i < byte_count_ptr; i++) {
 
 }
 
+
+HAL_TIM_Base_Stop_IT(&TIM_Initi);
 byte_count_ptr = 0;
 flag = 0;
 prev_ptr = -1;
+prev_count = 0;
 
 }
 
