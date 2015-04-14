@@ -55,7 +55,7 @@
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
 uint8_t source_address[] = {0x00, 0x42, 0x95, 0x25, 0x56};
-uint8_t s_a[] = {0x12, 0x34, 0x56, 0x78, 0x90};
+uint8_t s_a[] = {0x42, 0x95, 0x25, 0x56, 0x00};
 /* Private function prototypes -----------------------------------------------*/
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);

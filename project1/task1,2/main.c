@@ -20,12 +20,13 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 //#define CONSOLE //Uncomment to use the console as direction provider, stage 3, design task 2
-#define DEBUG  //Uncomment to print debug statements
+//#define DEBUG  //Uncomment to print debug statements
+#define ESSENTIAL //Uncomment to print essential debugs
 #define CHANNEL	50 //channel of the radio
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t destination_addr[] = {0x7B, 0x56, 0x34, 0x12, 0x00};
-uint8_t source_addr[] = {0x00,0x42, 0x95, 0x25, 0x56};
+uint8_t destination_addr[] = {0x43, 0x17, 0x70, 0x39, 0x00};
+uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56,0x00};
 char packet_type = 0xA1;
 char payload[19];
 uint8_t packet[32]; //packet to be sent
@@ -54,7 +55,7 @@ uint16_t test_p;
 int byte_counts[128];
 int byte_count_ptr = 0;
 int prev_ptr = -1;
-int flag = 0;
+
 int retransmission = 0; //used for duplex communication
 char temp; //char for retransmission
 
@@ -101,36 +102,46 @@ void main(void) {
 
 	BRD_init();	//Initalise NP2
 	Hardware_init();	//Initalise hardware modules
+	HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2);
 
   	while (1) {
 
+#ifdef DEBUG
+		if(byte_count_ptr > 0) {
 
-		if(prev_ptr == byte_count_ptr && counter == 50 && flag == 0) {
+						debug_printf("All counts received %d  %d\n", byte_count_ptr, counter); //can decode once this happens	
+
+		}
+#endif
+
+		if(byte_count_ptr - prev_ptr > 20 && counter == 50) {
 
 			
-			//debug_printf("All counts received %d\n", byte_count_ptr); //can decode once this happens
+
 			counter = 0;
 
-			
+
 			manchester_decode();
 			prev_ptr = -1;
+			
 	
-
+			
 			
 
 		} else {
 
+		 if(counter == 1) 	
 			prev_ptr = byte_count_ptr;
 			counter++;
 			if(counter > 50)
 				counter = 0;
-			
+
 
 		
 		}
 
 		
-		//r_packet[0] = 0x1;
+
 		if(console) {	//servo control is transferred to the console
 
 			payload_ptr = 0;
@@ -189,9 +200,9 @@ void main(void) {
 					if(RxChar == 42) { //toggles the use of laser
 						laser = !(laser);
 						retransmission = 0;
-#ifdef DEBUG
+
 						debug_printf("Toggled the laser\n");
-#endif
+
 
 					} else if(RxChar == 33) {
 						
@@ -208,18 +219,22 @@ void main(void) {
 						delay1 = 9000;
 						debug_printf("Data rate set at 2K bits/sec\n");
 
-					}else if(RxChar == 36) { //stimulates an error packet input to reciever i.e. D0
+					}else if(RxChar == 36 && laser == 1) { //stimulates an error packet input to reciever i.e. D0
 
+
+						s4295255_manchester_byte_encode(0xe3);
+						s4295255_manchester_byte_encode(0x66);
+						/*err_mask = 0x0000;
 						l_packet[0] = 0xe3;
 						l_packet[1] = 0x66;
-						laser_received = 1;
+						laser_received = 1;*/
 
 					} else {
 								
 						payload[payload_ptr] = RxChar;
 
 					
-#ifdef DEBUG
+#ifdef ESSENTIAL
 						debug_printf("%c\n", payload[payload_ptr]);
 #endif
 						payload_ptr++;
@@ -246,11 +261,11 @@ void main(void) {
 
 				packet[packet_ptr++] = packet_type;
 				
-				for(i=0; i <= 3; i++){
+				for(i=0; i <= 4; i++){
 					packet[packet_ptr++] = destination_addr[i];
 				}
 
-				for(i=4; i > 0; i--) {
+				for(i=0; i <5; i++) {
 					packet[packet_ptr++] = source_addr[i];
 				} 
 
@@ -269,7 +284,7 @@ void main(void) {
 				if(!laser) {
 					if(retransmission)
 						laser = 1;
-#ifdef DEBUG
+#ifdef ESSENTIAL
 					debug_printf("Sending : ");
 					for(i = 0; i < 32; i++) { 
 
@@ -280,15 +295,15 @@ void main(void) {
 					s4295255_radio_sendpacket(packet);
 				} else { //encode , modulate and send the data through the laser
 
-#ifdef DEBUG
+#ifdef ESSENTIAL
 						debug_printf("Sending via laser :");
 #endif					
 						temp = payload[i];
-#ifdef DEBUG
+#ifdef ESSENTIAL
 
 					for(i = 0; i < data_length; i++) { 
 
-						debug_printf("%x ", payload[i]);
+						debug_printf("%c ", payload[i]);
 						Delay(0x7FFF00/20);
 					}
 #endif
@@ -313,7 +328,7 @@ void main(void) {
 					//manchester modulate the data, waveform will be output to pin1 and send via laser: done
 						 //Start Input Capture 
 
-									HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
+									//HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2); 
 					for(i = 0; i < encoded_data_ptr; i++) {
 
 						s4295255_manchester_byte_encode(encoded_data[i]);
@@ -339,9 +354,9 @@ void main(void) {
 			debug_printf("RECEIVED FROM RADIO: ");
 			Delay(0x7FFF00/20);
 
-			for(i = 0; i < 32; i++) { 
+			for(i = 12; i < 30; i++) { 
 
-				debug_printf("%x ", r_packet[i]);
+				debug_printf("%c", r_packet[i]);
 				Delay(0x7FFF00/20);
 			}
 
@@ -370,7 +385,7 @@ void main(void) {
 
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d  %d  %x   %x\n", pan_angle, tilt_angle, edges, l_packet[1], l_packet[0]); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d  %d\n", pan_angle, tilt_angle); //printing out the angles to the console
 		}
 
 		if(laser_received){
@@ -618,78 +633,54 @@ void tim3_irqhandler (void) {
 
 void manchester_decode(){
 
+
  int i = 0;
- int syn = 0;
-err_mask = 0x0000;
-for(; i < byte_count_ptr; i++) {
-	count = byte_counts[i];
-	if(syn == 0) {
 
-		debug_printf("IC : %d  %d\n", time_period, count );
-	/*	if(edges > 3) {
-			
-			prev_count = 0;
-			count = 0;
-			syn = 0;
-			bit_count = 0;
-			byte_count = !(byte_count);
-			capture = 0;
-			time_period = 0;
-			edges = 0;
-			err_mask = 0xFF00;
-			break;
-
-		}*/
-
-
-	/*	if(prev_count == 0) {
-
-			prev_count = count;
-
-
-		} else if(time_period == 0) {
+#ifdef DEBUG
+	for( i = 0; i < byte_count_ptr; i++) {
 				
-			time_period = count - prev_count;
-			prev_count = count;
+				debug_printf("%d \n", byte_counts[i]);
+				Delay(0x7FFF00/20);
 
-
-		} else {
-
-			current_period = (count - prev_count) % 1000;
-			
-
-			if((current_period) > (time_period - time_period/3) && (current_period) < (time_period + time_period/3)){
-				
-					syn = 1;	
-				current_bit = 0x01;
-				prev_count = count;	
-
-			} else {
-				prev_count = count;
 
 			}
 
+#endif
 
-		} */
+ int syn = 0;
+	int time1 = 0;
+	int time2 = 0;
+err_mask = 0x0000;
 
-		if(edges ==0)
-			prev_count = count;
-		else if(edges == 1) {
-			
-			prev_count = count;
+for(i  = 0; i < byte_count_ptr;) {
+	count = byte_counts[i];
+	if(syn == 0) {
 
-		} else if(edges== 2) {
-			time_period = count - prev_count;
-			prev_count = count;
+
+		time1 = (byte_counts[i+1] - byte_counts[i]) % 10000;
+		time2 = (byte_counts[i+2] - byte_counts[i+1]) % 10000;
+		if(time1 > time2 - 5 && time1 < time2 + 5  && time2 !=0) {
+
+			time_period = time1;
+			debug_printf("IC : %d  %d %d\n", time_period, count, edges );
+			prev_count = byte_counts[i+2];
+			i+=3;
 			syn = 1;
 			current_bit = 0x01;
 
+
+		} 
+
+		else{
+		
+			i++;
+
 		}
-				edges++;
+	
 
 	} else {
 
-		current_period = (count - prev_count) % 1000;
+		current_period = (count - prev_count) % 10000;
 
 #ifdef DEBUG
 		debug_printf("Current_period : %d\n", current_period);
@@ -768,7 +759,7 @@ for(; i < byte_count_ptr; i++) {
 
 
 	
-		
+		i++;
 
 
 
@@ -778,10 +769,12 @@ for(; i < byte_count_ptr; i++) {
 
 
 HAL_TIM_Base_Stop_IT(&TIM_Initi);
+HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2);
 byte_count_ptr = 0;
-flag = 0;
 prev_ptr = -1;
 prev_count = 0;
+time_period = 0;
+edges = 0;
 
 }
 
