@@ -162,14 +162,44 @@ extern void s4295255_radio_setchan(unsigned char chan){
 	#ifdef DEBUG
 		debug_printf("Channel is: %d\n\r", chan);
 	#endif
+
+
+
+	uint8_t rxbyte;
+
+	uint8_t byte; 
+	byte = NRF24L01P_WRITE_REG | NRF24L01P_RF_CH;
+
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
+	// *hspi, uint8_t *pTxData, uint8_t *pRxData, uint16_t Size, uint32_t Timeout);
+	HAL_SPI_TransmitReceive(&SpiHandle, &byte, &rxbyte, 1, 1);
+	rfDelay(0x100);
+	byte = 50;
+	HAL_SPI_TransmitReceive(&SpiHandle, &byte, &rxbyte, 1, 1);
+	rfDelay(0x100);
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+	byte = 	NRF24L01P_WRITE_REG | NRF24L01P_RF_SETUP;
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
+	HAL_SPI_TransmitReceive(&SpiHandle, &byte , &rxbyte, 1, 1);
+	rfDelay(0x100);
+	byte = 	0x06;
+	HAL_SPI_TransmitReceive(&SpiHandle,&byte , &rxbyte, 1, 1);
+	rfDelay(0x100);
+	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+	byte = 	NRF24L01P_WRITE_REG | NRF24L01P_CONFIG;
+		HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
+	HAL_SPI_TransmitReceive(&SpiHandle,&byte , &rxbyte, 1, 1);
+	rfDelay(0x100);
+	byte = 	0x02;
+	HAL_SPI_TransmitReceive(&SpiHandle,&byte , &rxbyte, 1, 1);
+	rfDelay(0x100);
+		HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
+
 	
-    write_to_register(NRF24L01P_RF_CH, chan);        	// Select RF channel
-    write_to_register(NRF24L01P_RF_SETUP, 0x06);   							// TX_PWR:0dBm, Datarate:1Mbps
-    write_to_register(NRF24L01P_CONFIG, 0x02);	
 
 	Delay(0x04FF00);  							// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX. MAX_RT & TX_DS enabled..
 
-	mode_rx();
+
 }
 
 extern void s4295255_radio_settxaddress(unsigned char *addr){
