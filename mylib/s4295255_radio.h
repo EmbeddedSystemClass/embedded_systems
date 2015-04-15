@@ -1,6 +1,6 @@
 /**   
  ******************************************************************************   
- * @file    mylib/s4295255_radio.h  
+ * @file    mylib/s4295255_radio.c 
  * @author  Mani Batra – 42952556   
  * @date    25032015   
  * @brief  Radio peripheral driver   
@@ -18,8 +18,8 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 25/3/2015 - Created
- * 2. 19/3/2015 –  
- * 3. 23/3/2015 - 
+ * 2. 15/4/2015 –  Setting the channel via the SPI commands
+ *  
  */
 
 #ifndef S4295255_RADIO_H

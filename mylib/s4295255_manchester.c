@@ -15,6 +15,7 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 10/4/2015 - Created
+	2 . 15/4/2015 - Added functionality to change the delay
  */
 
 
@@ -35,6 +36,12 @@ void send_zero(void); //function to output zero as manchester code
 void timeDelay(__IO unsigned long nCount);
 
 
+/**
+  * @brief  Manchester encode the 8 bits received 
+  * @param  The char byte to encode
+  * @retval none
+
+  */
 extern void s4295255_manchester_byte_encode(uint8_t data) {
 
 	send_one(); //first start bit 
@@ -63,7 +70,12 @@ extern void s4295255_manchester_byte_encode(uint8_t data) {
 		
 	send_zero(); //stop bit
 }
+/**
+  * @brief  Output zero on D1
+  * @param  None
+  * @retval none
 
+  */
 void send_zero(){
 	Delay(delay1);  //0x04FF00 * is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x01);
@@ -74,7 +86,12 @@ void send_zero(){
 	
 	
 }
+/**
+  * @brief  Output one on D1 
+  * @param  none
+  * @retval none
 
+  */
 void send_one(){
 	Delay(delay1);  //0x04FF00 is a delay of 10us
 	HAL_GPIO_WritePin(BRD_D1_GPIO_PORT, BRD_D1_PIN, 0x00);
@@ -87,7 +104,12 @@ void send_one(){
 }
 
 
+/**
+  * @brief  Delay
+  * @param  amount of delay
+  * @retval none
 
+  */
 void timeDelay(__IO unsigned long nCount) {
   	while(nCount--) {
   	}

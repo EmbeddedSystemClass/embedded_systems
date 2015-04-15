@@ -18,8 +18,8 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 25/3/2015 - Created
- * 2. 19/3/2015 –  
- * 3. 23/3/2015 - 
+ * 2. 15/4/2015 –  Setting the channel via the SPI commands
+ *  
  */
 
 
@@ -55,8 +55,8 @@
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
 
-uint8_t source_address[] = {0x12, 0x34, 0x56, 0x78, 0x90};
-uint8_t s_a[] = {0x42, 0x95, 0x25, 0x56, 0x11};
+uint8_t source_address[] = {0x12, 0x34, 0x56, 0x78, 0x90}; ///test address
+uint8_t s_a[] = {0x42, 0x95, 0x25, 0x56, 0x11}; //used to set the source address
 /* Private function prototypes -----------------------------------------------*/
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);
@@ -68,7 +68,7 @@ void rfDelay(__IO unsigned long nCount);
 
 
 /**
-  * @brief  Initialise the servo
+  * @brief  Initialise the radio
   * @param  None
   * @retval None
 
@@ -158,6 +158,14 @@ extern void s4295255_radio_init(){
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 
 }
+
+/**
+
+  * @brief  Set the channel of the radio
+  * @param  The channel to set to 
+  * @retval None
+
+  */
 extern void s4295255_radio_setchan(unsigned char chan){
 	
 	#ifdef DEBUG
@@ -203,6 +211,14 @@ extern void s4295255_radio_setchan(unsigned char chan){
 
 }
 
+
+/**
+
+  * @brief  Set address of the radio
+  * @param  address to which set the radio to
+  * @retval None
+
+  */
 extern void s4295255_radio_settxaddress(unsigned char *addr){
 
 	/* Set CE low for idle state */
@@ -218,6 +234,13 @@ extern void s4295255_radio_settxaddress(unsigned char *addr){
 
 }
 
+
+/**
+  * @brief  Send the packet via the radio
+  * @param  the packet to be sent
+  * @retval None
+
+  */
 extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 
 	write_to_register(NRF24L01P_CONFIG, 0x72);     // Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX.
@@ -236,6 +259,13 @@ extern void s4295255_radio_sendpacket(unsigned char *txpacket){
 	mode_rx();
 
 }
+
+/**
+  * @brief  get the packet via the radio
+  * @param  the buffer to receive the packet
+  * @retval 1 if the receive is enabled or -1 else
+
+  */
 extern int s4295255_radio_getpacket(unsigned char *txpacket){
 
 	mode_rx();
@@ -266,6 +296,13 @@ extern int s4295255_radio_getpacket(unsigned char *txpacket){
 }
 
 
+/**
+  * @brief  write to the buffer
+  * @param  the packet to be sent
+  * @retval None
+
+  */
+
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 	int i;
@@ -276,9 +313,7 @@ void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 	rfDelay(0x7FFF00/950);
 
-//#ifdef DEBUG
-	//debug_printf("DEBUG: WB: ")
-//#endif
+
 	for (i = 0; i < buffer_len; i++) {
 		
 		/* Return the Byte read from the SPI bus */
@@ -298,6 +333,12 @@ void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len){
 
 }
 
+/**
+  * @brief  Write to the registor
+  * @param  The registor to write to and the value to write
+  * @retval None
+
+  */
 void write_to_register(uint8_t reg_addr, uint8_t val){
 
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 0);
@@ -309,6 +350,12 @@ void write_to_register(uint8_t reg_addr, uint8_t val){
 
 }
 
+/**
+  * @brief  send the byte via the radio
+  * @param  byte to send
+  * @retval None
+
+  */
 uint8_t sendRecv_Byte(uint8_t byte) {
 
 	uint8_t rxbyte;
@@ -322,6 +369,12 @@ uint8_t sendRecv_Byte(uint8_t byte) {
 }
 
 
+/**
+  * @brief  Read the value of the register
+  * @param  the register to read
+  * @retval None
+
+  */
 uint8_t readRegister(uint8_t reg_addr) {
 
 	uint8_t rxbyte;
@@ -336,6 +389,12 @@ uint8_t readRegister(uint8_t reg_addr) {
 	return rxbyte; 
 }
 
+/**
+  * @brief  REad the buffer from the radio
+  * @param  the buffer to store to and the length
+  * @retval None
+
+  */
 void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 
 	int i;
@@ -368,12 +427,25 @@ void readBuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len) {
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);
 	rfDelay(0x8FF);	 
 }
+
+/**
+  * @brief  change to receive mode
+  * @param  none
+  * @retval None
+
+  */
 void mode_rx() {
 
     write_to_register(NRF24L01P_CONFIG, 0x73);	//0x0f     	// Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:RX. 
     HAL_GPIO_WritePin(BRD_D9_GPIO_PORT, BRD_D9_PIN, 1);                            		// Set CE pin high to enable RX device
 }
 
+/**
+  * @brief  delay
+  * @param  none
+  * @retval None
+
+  */
 void rfDelay(__IO unsigned long nCount) {
   while(nCount--) {
   }

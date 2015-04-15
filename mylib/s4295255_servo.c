@@ -98,7 +98,7 @@ extern void s4295255_servo_init(void) {
 }
 
 /**
-  * @brief Set the servo to an angle
+  * @brief Set the servo pan to an angle
   *         
   *          
   *
@@ -137,6 +137,17 @@ extern void s4295255_servo_setangle(int angle) {
 
 }
 
+
+/**
+  * @brief Set the servo tilt to an angle
+
+  *         
+  *          
+  *
+  * @param  angle
+
+  * @retval X, Y or Z value
+  */
 extern void s4295255_servo_settiltangle(int angle) {
 
 	//converting the angle range -90 to +90 TO 0 to 180

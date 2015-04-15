@@ -15,6 +15,7 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 10/4/2015 - Created
+	2 . 15/4/2015 - Added functionality to change the delay
  */
 
 #ifndef S4295255_MANCHESTER_H

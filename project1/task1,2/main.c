@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file    stage3/main.c 
+  * @file    Project 1/main.c 
   * @author  Mani Batra
-  * @date    019032015
-  * @brief   Control the pan of the servo motor by generating the PWM on D2
+  * @date    11042015
+  * @brief   setting up an RF and laser communication link with a partner 
   ******************************************************************************
   *  
   */ 
@@ -25,54 +25,56 @@
 #define CHANNEL	50 //channel of the radio
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t destination_addr[] = {0x43, 0x17, 0x70, 0x39, 0x11};
-char channels[]= {40, 50, 60, 55};
-int channel_ptr = 0;
-uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56,0x00};
+uint8_t destination_addr[] = {0x43, 0x17, 0x70, 0x39, 0x11}; //destination address of the radio to sent to 
+char channels[]= {40, 50, 60, 55}; //channels we can cycle through
+int channel_ptr = 0; //ptr to cycle through the channels
+uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56,0x00}; //source address
 
-char packet_type = 0xA1;
-char payload[19];
+char packet_type = 0xA1; //type of the packet
+char payload[19]; //max size payload
 uint8_t packet[32]; //packet to be sent
 uint8_t r_packet[32]; //packet to be recieved via radio
 uint8_t l_packet[2] = {0x00, 0x00}; //packet recieved via laser
 int bit_count = 0; //count of the bits recieved via laser
 int byte_count = 0; //count of the bytes recieved via laser
-int counter = 0;
-int delay1 =20000;
+int counter = 0; //counter for checking if the value received via input capture has changed or not
+int delay1 =20000; //delay to generate manchester encode
 
 
-unsigned int prev_count = 0;
-unsigned int count = 0; 
-int time_period = 0;
-int syn = 0;
-int current_period;
+unsigned int prev_count = 0; //variable for calculating the time period in manchester decoding
+unsigned int count = 0; //variable for calculating the time period in manchester decoding
+int time_period = 0; //time period of the wave received via the photodiode
+int syn = 0; //to check if the received bits are sync using start bits
+int current_period; //the time_period of the current bit
 int speed_mode = 0; //switch on to show challenge 8
 
 uint8_t current_bit;
-int capture = 0;
-uint8_t test;
-int edges = 0;
+int capture = 0; //used in manchester decoding
+
+int edges = 0; //used to debug manchester decoding
 int laser_received = 0; //to indicate if received from laser
-char decoded_laser_byte;
-uint16_t test_p;
-int byte_counts[128];
-int byte_count_ptr = 0;
-int prev_ptr = -1;
+char decoded_laser_byte; //the byte received and decoded 
+
+int byte_counts[128]; //calculate the captured time_periods
+int byte_count_ptr = 0; //pointer to iterate through the above array
+int prev_ptr = -1; //ptr to check when the caputre is received
 
 int retransmission = 0; //used for duplex communication
 char temp; //char for retransmission
 
 
-int pan_angle = -13; //angle of the servo
-int tilt_angle = 75;
+int pan_angle = 0; //pan angle of the servo
+int tilt_angle = 0;// tilt angle of the servo
 int console = 0; // to activate(1) or deactivate(0) console control of the servos
 int laser = 0; //to activate(1) or deactivate(0) transmission through laser, when laser is on 
 			   //RF wont work. Toggled by *. 
 int laser_receiver = 0; //0 when not receiving 
 int data_length = 0; //length of the data recieved from the terminal
-uint16_t err_mask = 0x0000;
+uint16_t err_mask = 0x0000; //error mask calculated on the data received
 
-TIM_HandleTypeDef TIM_Initi;
+int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
+
+TIM_HandleTypeDef TIM_Initi; //timer for the input caputre
 
 /* Private function prototypes -----------------------------------------------*/
 void Delay(__IO unsigned long nCount);
@@ -82,7 +84,7 @@ void set_new_tiltangle(uint16_t adc_y_value);
 void tim3_irqhandler (void);
 void go_sync(void);
 void manchester_decode(void);
-int print_counter  = 0; // Counter to tell when the pan and tilt values will be printed
+
 
 
 
@@ -117,29 +119,19 @@ void main(void) {
 		}
 #endif
 
-		if(byte_count_ptr - prev_ptr > 20 && counter == 50) {
-
-			
+		if(byte_count_ptr - prev_ptr > 20 && counter == 50) { //to check if the timer input capture has started
 
 			counter = 0;
-
-
 			manchester_decode();
-			prev_ptr = -1;
-			
-	
-			
-			
+			prev_ptr = -1;		
 
 		} else {
 
-			if(counter == 1) 	
+			if(counter == 1) 	//if the capture doesnt change for 50 counts and more than 20 counts are caputred 
 				prev_ptr = byte_count_ptr;
 			counter++;
 			if(counter > 50)
 				counter = 0;
-
-
 		
 		}
 
@@ -207,7 +199,7 @@ void main(void) {
 						debug_printf("Toggled the laser\n");
 
 
-					} else if(RxChar == 37) {
+					} else if(RxChar == 37) { //used to cycle throught the available channels
 						
 
 						s4295255_radio_setchan(channels[channel_ptr]);
@@ -216,17 +208,17 @@ void main(void) {
 						
 						
 							
-					}else if(RxChar == 35) {
+					}else if(RxChar == 35) { //set the mode to show challenge 3
 						
 						debug_printf("Speed mode toggled\n");
 						speed_mode = !(speed_mode);
 
-					} else if(RxChar == 35) {
-						
-						debug_printf("Speed mode toggled\n");
-						speed_mode = !(speed_mode);
+					} else if(RxChar == 33) { 
 
-					}else if(RxChar == 64) {
+						delay1 = 20000;
+						debug_printf("Data rate set at 1K bits/sec\n");
+
+					}else if(RxChar == 64) { 
 
 						delay1 = 9000;
 						debug_printf("Data rate set at 2K bits/sec\n");
@@ -234,16 +226,13 @@ void main(void) {
 					}else if(RxChar == 36 && laser == 1) { //stimulates an error packet input to reciever i.e. D0
 
 
-						s4295255_manchester_byte_encode(0xe3);
+						s4295255_manchester_byte_encode(0xe3); //sending the char encoded ina wrong way
 						s4295255_manchester_byte_encode(0x66);
 						temp = 'a';
 #ifdef ESSENTIAL
 						debug_printf("Sending via laser : a");
 #endif	
-						/*err_mask = 0x0000;
-						l_packet[0] = 0xe3;
-						l_packet[1] = 0x66;
-						laser_received = 1;*/
+					
 
 					} else {
 								
@@ -278,15 +267,15 @@ void main(void) {
 				packet[packet_ptr++] = packet_type;
 				
 				for(i=0; i <= 4; i++){
-					packet[packet_ptr++] = destination_addr[i];
+					packet[packet_ptr++] = destination_addr[i]; //setting the destination address 
 				}
 
 				for(i=0; i <5; i++) {
-					packet[packet_ptr++] = source_addr[i];
+					packet[packet_ptr++] = source_addr[i]; //set the source address
 				} 
 
 				for(i=0; i < 19; i++) {
-					packet[packet_ptr++] = payload[i]; //may have to reverse the direction of sending of payload
+					packet[packet_ptr++] = payload[i]; //set the payload
 				}
 
 				for(;packet_ptr < 32; packet_ptr++) {
@@ -297,8 +286,8 @@ void main(void) {
 
 
 
-				if(!laser) {
-					if(retransmission)
+				if(!laser) { //send via radio if laser mode is not on
+					if(retransmission) //switch back to laser mode after retransmitted
 						laser = 1;
 #ifdef ESSENTIAL
 					debug_printf("Sending : ");
@@ -365,7 +354,7 @@ void main(void) {
 			}
 		}
 		
-		if(s4295255_radio_getpacket(r_packet) == 1) {
+		if(s4295255_radio_getpacket(r_packet) == 1) { //if radio received a packet
 			
 			debug_printf("RECEIVED FROM RADIO: ");
 			Delay(0x7FFF00/20);
@@ -384,7 +373,7 @@ void main(void) {
 			error[4] = r_packet[16];
 			error[5] = '\0';
 
-			if(!strcmp(error, "ERROR")){
+			if(!strcmp(error, "ERROR")){ //checking if an error packet is received
 
 				payload[0] = temp;
 				data_length = 1;
@@ -406,11 +395,11 @@ void main(void) {
 			debug_printf("PAN : %d  TILT : %d\n", pan_angle, tilt_angle); //printing out the angles to the console
 		}
 
-		if(laser_received){
+		if(laser_received){ //when something from the laser is received
 			decoded_laser_byte = s4295255_hamming_decode(l_packet[1] << 8 | l_packet[0]);
 			Delay(0x7FFF00/20);
 			debug_printf("RECEIVED FROM LASER: %c - Raw :%x%x  (ErrMask %04x)\n", decoded_laser_byte, l_packet[1], l_packet[0], err_mask);
-			if(speed_mode == 1 && err_mask == 0x0000) {
+			if(speed_mode == 1 && err_mask == 0x0000) { //toggling to speed mode for challenged 
 
 				if(delay1 < 5000) {
 					debug_printf("Maximum speed acheived\n");
@@ -426,7 +415,7 @@ void main(void) {
 				debug_printf("Decrease the speed of the laser\n");
 
 			}
-			if(err_mask != 0x0000) {
+			if(err_mask != 0x0000) { //send an error if the wrong byte is received
 				
 				payload[0] = 'E';
 				payload[1] = 'R';
@@ -451,7 +440,7 @@ void main(void) {
 			l_packet[1] = 0x00;
 			laser_received = 0;
 			byte_count_ptr = 0;
-			for( i = 0; i < 128; i++) {
+			for( i = 0; i < 128; i++) { //reintialising the count array
 				
 				byte_counts[i] = 0;
 
@@ -493,7 +482,7 @@ void Hardware_init(void) {
 
 
 	
-
+		/* itnitalisng the timer for the input caputre */
 
 		// Compute the prescaler value. SystemCoreClock = 168000000 - set for 50Khz clock 
   	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 50000) - 1;
@@ -571,12 +560,22 @@ void exti_pb_interrupt_handler(void) {
 
 }
 
+/**
+
+  * @brief  change the pan angle
+
+
+  * @param  adc value received
+  * @retval None
+
+
+  */
 
 //get the new value of the angle that needs to be changed
 void set_new_panangle(uint16_t adc_x_value) {
 	//Delay(20000);
 	
-	//setting the value of the pan angle according to the value from x - axis
+	//setting the value of the pan angle according to the value from x - axis ( stabalise the servo at initial position of the joystick
 		if(adc_x_value < 1960) {
 
 			pan_angle = pan_angle - 1;
@@ -602,10 +601,19 @@ void set_new_panangle(uint16_t adc_x_value) {
 
 }
 
+/**
+  * @brief  change the tilt angle
+
+
+  * @param  adc value received
+  * @retval None
+
+  */
+
 void set_new_tiltangle(uint16_t adc_y_value) {
 	//Delay(20000);
 	//setting the value of the tilt angle according to the value from y - axis
-		if(adc_y_value < 2000) {
+		if(adc_y_value < 2000) { //using these values to stabalise the position of the servo at initial position
 
 			tilt_angle = tilt_angle - 1;
 			if(tilt_angle < -85) {
@@ -630,6 +638,14 @@ void set_new_tiltangle(uint16_t adc_y_value) {
 }
 
 
+/**
+  * @brief  the input capture function
+
+
+  * @param  none
+  * @retval None
+
+  */
 
 void tim3_irqhandler (void) {
 
@@ -651,6 +667,15 @@ void tim3_irqhandler (void) {
 
 }
 
+
+/**
+  * @brief  the manchester decode function
+
+
+  * @param  none
+  * @retval None
+
+  */
 
 void manchester_decode(){
 
@@ -678,7 +703,7 @@ void manchester_decode(){
 		if(syn == 0) {
 
 
-			time1 = (byte_counts[i+1] - byte_counts[i]) % 10000;
+			time1 = (byte_counts[i+1] - byte_counts[i]) % 10000; //checking if time periods are equal to sync(start bits)
 			time2 = (byte_counts[i+2] - byte_counts[i+1]) % 10000;
 			if(time1 > time2 - 5 && time1 < time2 + 5  && time2 !=0) {
 
@@ -709,7 +734,7 @@ void manchester_decode(){
 	#endif
 			if((current_period > (time_period - time_period/3)) && (current_period < (time_period + time_period/3))){
 
-
+					//if the current period is equal to the time period, capture next edge and set current bit in answer
 			
 				if(capture){
 
@@ -738,7 +763,7 @@ void manchester_decode(){
 
 			} else {
 
-
+			//if the current period is twice to the time period, flip the current bit and set it in the answer
 
 				current_bit =  !(current_bit);
 #ifdef DEBUG
@@ -761,8 +786,6 @@ void manchester_decode(){
 
 				if(byte_count == 1){
 					laser_received = 1;
-
-
 				}
 
 				prev_count = 0;
@@ -788,7 +811,7 @@ void manchester_decode(){
 
 	}
 
-
+//restart the input capture timer
 HAL_TIM_Base_Stop_IT(&TIM_Initi);
 HAL_TIM_IC_Start_IT(&TIM_Initi, TIM_CHANNEL_2);
 byte_count_ptr = 0;
