@@ -54,8 +54,9 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static SPI_HandleTypeDef SpiHandle;
-uint8_t source_address[] = {0x00, 0x42, 0x95, 0x25, 0x56};
-uint8_t s_a[] = {0x42, 0x95, 0x25, 0x56, 0x00};
+
+uint8_t source_address[] = {0x12, 0x34, 0x56, 0x78, 0x90};
+uint8_t s_a[] = {0x42, 0x95, 0x25, 0x56, 0x11};
 /* Private function prototypes -----------------------------------------------*/
 void writebuffer(uint8_t reg_addr, uint8_t *buffer, int buffer_len);
 void write_to_register(uint8_t reg_addr, uint8_t val);
@@ -174,7 +175,7 @@ extern void s4295255_radio_setchan(unsigned char chan){
 	// *hspi, uint8_t *pTxData, uint8_t *pRxData, uint16_t Size, uint32_t Timeout);
 	HAL_SPI_TransmitReceive(&SpiHandle, &byte, &rxbyte, 1, 1);
 	rfDelay(0x100);
-	byte = 50;
+	byte = chan;
 	HAL_SPI_TransmitReceive(&SpiHandle, &byte, &rxbyte, 1, 1);
 	rfDelay(0x100);
 	HAL_GPIO_WritePin(BRD_SPI_CS_GPIO_PORT, BRD_SPI_CS_PIN, 1);

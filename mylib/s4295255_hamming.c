@@ -19,9 +19,7 @@
  * 3. 23/3/2015 - 
  */
 
-int error_count = 0;
-int error_corrected = 0;
-int lower = 1;
+
 /* Includes ------------------------------------------------------------------*/
 #include "board.h"
 #include "stm32f4xx_hal_conf.h"
@@ -33,15 +31,18 @@ int lower = 1;
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+int error_count = 0;
+int error_corrected = 0;
+int lower = 1; //used to indicate
 
 /* Private function prototypes -----------------------------------------------*/
-int check_parity(unsigned char hbyte);
-unsigned char hamming_byte_decode(unsigned char hbyte);
+int check_parity(unsigned char hbyte); // uses parity bit to check for errors
+unsigned char hamming_byte_decode(unsigned char hbyte); //used to decode one byte of the hamming code out of the short received  
 
 /**
-  * @brief  Initialise the servo
-  * @param  None
-  * @retval None
+  * @brief  Hamming encode the 8 bits received 
+  * @param  The char byte to encode
+  * @retval An encoded 16 bit word
 
   */
 
@@ -55,12 +56,12 @@ extern uint16_t s4295255_hamming_encode(unsigned char hbyte){
 
 	int i;
 
-	uint8_t in = hbyte & 0xF;
+	uint8_t in = hbyte & 0xF; //encode 4 LSB bits
 	
 	for(i = 0; i < 2; i++){
 		p0 = 0;
 		if(i == 1) { 
-			in = hbyte >> 4; //encode 4 MSBs
+			in = hbyte >> 4; //encode 4 MSB bits
 		}
 	
 		/* extract bits */
@@ -102,11 +103,20 @@ extern uint16_t s4295255_hamming_encode(unsigned char hbyte){
 	return packet_to_send;
 
 }
+
+
+/**
+  * @brief  Hamming decode  the 16 bits received 
+  * @param  The short to decode
+  * @retval An decoded 8 bit word
+
+  */
+
 extern unsigned char s4295255_hamming_decode(unsigned short hword){
 
 
 	
-
+	//dividing the hword received into lsb and msb to decode one at a time
 	unsigned char lsb = hamming_byte_decode(hword & 0xFF);
 	unsigned char msb = hamming_byte_decode(hword >> 8);
 
@@ -131,6 +141,7 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 	uint8_t p0;
 	uint8_t s;
 
+	//extracting the data bits and the hamming, parity bits
 	d0 = !!(hbyte & 0x1);
 	d1 = !!(hbyte & 0x2);
 	d2 = !!(hbyte & 0x4);
@@ -140,14 +151,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 	h2 = !!(hbyte & 0x40);
 	p0 = !!(hbyte & 0x80);
 
-
+	//calculating the syndrome
 	uint8_t s0 = d1 ^ d2 ^ d3 ^ h0;
 	uint8_t s1 = d0 ^ d2 ^ d3 ^ h1;
 	uint8_t s2 = d0 ^ d1 ^ d3 ^ h2;
 
 	s = s0 | (s1 << 1) | (s2 << 2);
 
-
+	//check the syndrome - if it is 
 	switch(s){
 		case 0: 
 			lower = !(lower);
@@ -155,7 +166,7 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 		
 		case 1: 
 			hbyte ^= 1 << 6;
-			if(lower){
+			if(lower){ //sets the error mask accordingly if the byte is LSB or MSB
 				err_mask ^= 1 << 6;
 
 			} else {
@@ -191,11 +202,12 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 3:
 			 d0 = !d0;
+			 hbyte ^= 1 << 0;
 			if(lower){
-				err_mask ^= 1 << 1;
+				err_mask ^= 1 << 0;
 
 			} else {
-				err_mask ^= 1 << 9;
+				err_mask ^= 1 << 8;
 
 			}
 			lower = !(lower);
@@ -230,6 +242,27 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 		case 5:
 			d1 = !d1;
+			hbyte ^= 1 << 1;
+			if(lower){
+				err_mask ^= 1 << 1;
+
+			} else {
+				err_mask ^= 1 << 9;
+
+			}
+			lower = !(lower);
+			error_count ++;
+			if(check_parity(hbyte)){
+				error_corrected++;	
+				return ( d0 | (d1 << 1) | (d2 <<2) | (d3 << 3) );
+
+			} else 
+				return -1;
+
+
+		case 6:
+			d2 = !d2;
+			hbyte ^= 1 << 2;
 			if(lower){
 				err_mask ^= 1 << 2;
 
@@ -246,32 +279,14 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 			} else 
 				return -1;
 
-
-		case 6:
-			d2 = !d2;
+		case 7:
+			d3 = !d3;
+			hbyte ^= 1 << 3;
 			if(lower){
 				err_mask ^= 1 << 3;
 
 			} else {
 				err_mask ^= 1 << 11;
-
-			}
-			lower = !(lower);
-			error_count ++;
-			if(check_parity(hbyte)){
-				error_corrected++;	
-				return ( d0 | (d1 << 1) | (d2 <<2) | (d3 << 3) );
-
-			} else 
-				return -1;
-
-		case 7:
-			d3 = !d3;
-			if(lower){
-				err_mask ^= 1 << 4;
-
-			} else {
-				err_mask ^= 1 << 12;
 
 			}
 			lower = !(lower);
@@ -294,6 +309,12 @@ unsigned char hamming_byte_decode(unsigned char hbyte) {
 
 }
 
+/**
+  * @brief  Check for the parity bit, used to detect two bit errors
+  * @param  The hamming byte whose parity is checked
+  * @retval 1 if the parity is right else 0
+
+  */
 int check_parity(unsigned char hbyte) {
 
 	int p =0;

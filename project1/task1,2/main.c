@@ -25,8 +25,11 @@
 #define CHANNEL	50 //channel of the radio
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t destination_addr[] = {0x43, 0x17, 0x70, 0x39, 0x00};
+uint8_t destination_addr[] = {0x43, 0x17, 0x70, 0x39, 0x11};
+char channels[]= {40, 50, 60, 55};
+int channel_ptr = 0;
 uint8_t source_addr[] = {0x42, 0x95, 0x25, 0x56,0x00};
+
 char packet_type = 0xA1;
 char payload[19];
 uint8_t packet[32]; //packet to be sent
@@ -109,7 +112,7 @@ void main(void) {
 #ifdef DEBUG
 		if(byte_count_ptr > 0) {
 
-						debug_printf("All counts received %d  %d\n", byte_count_ptr, counter); //can decode once this happens	
+			debug_printf("All counts received %d  %d\n", byte_count_ptr, counter); //can decode once this happens	
 
 		}
 #endif
@@ -130,8 +133,8 @@ void main(void) {
 
 		} else {
 
-		 if(counter == 1) 	
-			prev_ptr = byte_count_ptr;
+			if(counter == 1) 	
+				prev_ptr = byte_count_ptr;
 			counter++;
 			if(counter > 50)
 				counter = 0;
@@ -204,11 +207,20 @@ void main(void) {
 						debug_printf("Toggled the laser\n");
 
 
-					} else if(RxChar == 33) {
+					} else if(RxChar == 37) {
 						
-						delay1 = 20000;
-						debug_printf("Data rate set at 1K bits/sec\n");
+
+						s4295255_radio_setchan(channels[channel_ptr]);
+						debug_printf("Changing channel to %d\n", channels[channel_ptr] );
+						channel_ptr = (channel_ptr + 1) % 3;
+						
+						
 							
+					}else if(RxChar == 35) {
+						
+						debug_printf("Speed mode toggled\n");
+						speed_mode = !(speed_mode);
+
 					} else if(RxChar == 35) {
 						
 						debug_printf("Speed mode toggled\n");
@@ -224,6 +236,10 @@ void main(void) {
 
 						s4295255_manchester_byte_encode(0xe3);
 						s4295255_manchester_byte_encode(0x66);
+						temp = 'a';
+#ifdef ESSENTIAL
+						debug_printf("Sending via laser : a");
+#endif	
 						/*err_mask = 0x0000;
 						l_packet[0] = 0xe3;
 						l_packet[1] = 0x66;
@@ -361,15 +377,17 @@ void main(void) {
 			}
 
 			char error[6];
-			error[0] = r_packet[9];
-			error[1] = r_packet[10];
-			error[2] = r_packet[11];
-			error[3] = r_packet[12];
-			error[4] = r_packet[13];
+			error[0] = r_packet[12];
+			error[1] = r_packet[13];
+			error[2] = r_packet[14];
+			error[3] = r_packet[15];
+			error[4] = r_packet[16];
 			error[5] = '\0';
 
 			if(!strcmp(error, "ERROR")){
-				payload[i] = temp;
+
+				payload[0] = temp;
+				data_length = 1;
 				for(i=1; i < 19; i++)
 					payload[i] = '\0';
 					payload_ptr = 19;
@@ -385,7 +403,7 @@ void main(void) {
 
 		if(print_counter > 20) { 
 			print_counter = 0;
-			debug_printf("PAN : %d  TILT : %d  %d\n", pan_angle, tilt_angle); //printing out the angles to the console
+			debug_printf("PAN : %d  TILT : %d\n", pan_angle, tilt_angle); //printing out the angles to the console
 		}
 
 		if(laser_received){
@@ -395,19 +413,19 @@ void main(void) {
 			if(speed_mode == 1 && err_mask == 0x0000) {
 
 				if(delay1 < 5000) {
-					debug_printf("Maximum speed acheived  %d\n", delay1);
+					debug_printf("Maximum speed acheived\n");
 
 				} else {
 					delay1-=2000;
-					debug_printf("Increase the speed of the laser  %d\n", delay1);
+					debug_printf("Increase the speed of the laser\n");
 
 				}
 			} else if(speed_mode == 1) {
 
 				delay1+=2000;
-				debug_printf("Decrease the speed of the laser %d\n", delay1);
+				debug_printf("Decrease the speed of the laser\n");
 
-			} else {
+			}
 			if(err_mask != 0x0000) {
 				
 				payload[0] = 'E';
@@ -424,9 +442,11 @@ void main(void) {
 					payload[i] = '\0';
 			}
 			payload_ptr = 19;
+			l_packet[0] = 0x00;
+			l_packet[1] = 0x00;
 			retransmission = 1;
 			laser = 0;
-			}
+		
 			l_packet[0] = 0x00;
 			l_packet[1] = 0x00;
 			laser_received = 0;
@@ -436,6 +456,7 @@ void main(void) {
 				byte_counts[i] = 0;
 
 			}
+
 
 		}
 
@@ -569,9 +590,9 @@ void set_new_panangle(uint16_t adc_x_value) {
 		} else if(adc_x_value > 2050) {
 
 			pan_angle = pan_angle + 1;
-			if(pan_angle > 75) {
+			if(pan_angle > 80) {
 
-				pan_angle = 75;
+				pan_angle = 80;
 
 			}
 			
@@ -634,138 +655,138 @@ void tim3_irqhandler (void) {
 void manchester_decode(){
 
 
- int i = 0;
+ 	int i = 0;
 
 #ifdef DEBUG
 	for( i = 0; i < byte_count_ptr; i++) {
 				
-				debug_printf("%d \n", byte_counts[i]);
-				Delay(0x7FFF00/20);
-
-
-			}
-
-#endif
-
- int syn = 0;
-	int time1 = 0;
-	int time2 = 0;
-err_mask = 0x0000;
-
-for(i  = 0; i < byte_count_ptr;) {
-	count = byte_counts[i];
-	if(syn == 0) {
-
-
-		time1 = (byte_counts[i+1] - byte_counts[i]) % 10000;
-		time2 = (byte_counts[i+2] - byte_counts[i+1]) % 10000;
-		if(time1 > time2 - 5 && time1 < time2 + 5  && time2 !=0) {
-
-			time_period = time1;
-			debug_printf("IC : %d  %d %d\n", time_period, count, edges );
-			prev_count = byte_counts[i+2];
-			i+=3;
-			syn = 1;
-			current_bit = 0x01;
-
-
-		} 
-
-		else{
-		
-			i++;
-
-		}
-	
-
-	} else {
-
-		current_period = (count - prev_count) % 10000;
-
-#ifdef DEBUG
-		debug_printf("Current_period : %d\n", current_period);
+		debug_printf("%d \n", byte_counts[i]);
 		Delay(0x7FFF00/20);
-#endif
-		if((current_period > (time_period - time_period/3)) && (current_period < (time_period + time_period/3))){
-
-
-			
-			if(capture){
-
-				if(bit_count < 8)
-
-					l_packet[byte_count] |= (current_bit << bit_count);
-
-#ifdef DEBUG
-				debug_printf("current bit : %d %d\n", current_bit, bit_count);
-				Delay(0x7FFF00/20);
-#endif
-				capture = !(capture);
-				bit_count++;
-
-			} else {
-
-
-				capture = 1;
-
-			}
-
-
-			prev_count = count;
-
-				
-
-		} else {
-
-
-
-			current_bit =  !(current_bit);
-#ifdef DEBUG
-				debug_printf("current bit : %d %d\n", current_bit, bit_count);
-				Delay(0x7FFF00/20);
-#endif
-			if(bit_count < 8)
-
-				l_packet[byte_count] |=  (current_bit << bit_count);
-			bit_count++;
-			prev_count =count;
-
-			
-
-			
-		}
-
-		if(bit_count == 9) { //reinitialise everything for the second word
-
-
-			if(byte_count == 1){
-				laser_received = 1;
-
-
-			}
-
-			prev_count = 0;
-
-			count = 0;
-			syn = 0;
-			bit_count = 0;
-			byte_count = !(byte_count);
-			edges = 0;
-			capture = 0;
-			time_period = 0;
-
-
-		}
-
-
-	
-		i++;
-
 
 
 	}
 
-}
+#endif
+
+ 	int syn = 0;
+	int time1 = 0;
+	int time2 = 0;
+	err_mask = 0x0000;
+
+	for(i  = 0; i < byte_count_ptr;) {
+		count = byte_counts[i];
+		if(syn == 0) {
+
+
+			time1 = (byte_counts[i+1] - byte_counts[i]) % 10000;
+			time2 = (byte_counts[i+2] - byte_counts[i+1]) % 10000;
+			if(time1 > time2 - 5 && time1 < time2 + 5  && time2 !=0) {
+
+				time_period = time1;
+				//debug_printf("IC : %d  %d %d\n", time_period, count, edges );
+				prev_count = byte_counts[i+2];
+				i+=3;
+				syn = 1;
+				current_bit = 0x01;
+
+
+			} 
+
+			else{
+		
+				i++;
+
+			}
+	
+
+		} else {
+
+			current_period = (count - prev_count) % 10000;
+
+	#ifdef DEBUG
+			debug_printf("Current_period : %d\n", current_period);
+			Delay(0x7FFF00/20);
+	#endif
+			if((current_period > (time_period - time_period/3)) && (current_period < (time_period + time_period/3))){
+
+
+			
+				if(capture){
+
+					if(bit_count < 8)
+
+						l_packet[byte_count] |= (current_bit << bit_count);
+
+#ifdef DEBUG
+					debug_printf("current bit : %d %d\n", current_bit, bit_count);
+					Delay(0x7FFF00/20);
+#endif
+					capture = !(capture);
+					bit_count++;
+
+				} else {
+
+
+					capture = 1;
+
+				}
+
+
+				prev_count = count;
+
+				
+
+			} else {
+
+
+
+				current_bit =  !(current_bit);
+#ifdef DEBUG
+				debug_printf("current bit : %d %d\n", current_bit, bit_count);
+				Delay(0x7FFF00/20);
+#endif
+				if(bit_count < 8)
+
+					l_packet[byte_count] |=  (current_bit << bit_count);
+				bit_count++;
+				prev_count =count;
+
+			
+
+			
+			}
+
+			if(bit_count == 9) { //reinitialise everything for the second word
+
+
+				if(byte_count == 1){
+					laser_received = 1;
+
+
+				}
+
+				prev_count = 0;
+
+				count = 0;
+				syn = 0;
+				bit_count = 0;
+				byte_count = !(byte_count);
+				edges = 0;
+				capture = 0;
+				time_period = 0;
+
+
+			}
+
+
+	
+			i++;
+
+
+
+		}
+
+	}
 
 
 HAL_TIM_Base_Stop_IT(&TIM_Initi);
