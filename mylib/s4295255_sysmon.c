@@ -44,9 +44,9 @@ extern void s4295255_sysmon_init(void) {
 
 
   	/* Configure the A3 to A5 pins as outputs */
-	GPIO_InitStructure.Pin =  BRD_A3_PIN | BRD_A4_PIN | BRD_A5_PIN			
+	GPIO_InitStructure.Pin =  BRD_A3_PIN | BRD_A4_PIN | BRD_A5_PIN;		
   	GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;		//Output Mode
-  	GPIO_InitStructure.Pull = GPIO_PULLDOWN;			//Enable Pull up, down or no pull resister
+  	GPIO_InitStructure.Pull = GPIO_PULLUP;			//Enable Pull up, down or no pull resister
   	GPIO_InitStructure.Speed = GPIO_SPEED_FAST;			//Pin latency
   	HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
  		//Initialise Pin
