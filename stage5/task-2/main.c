@@ -1,13 +1,11 @@
 /**
   ******************************************************************************
-  * @file    ex15_fr_semaphore/main.c 
-  * @author  MDS
-  * @date    02022015
-  * @brief   FreeRTOS LED Flashing program using semaphores.Creates a semaphore to 
-  *			 signal a task to toggle the onboard Blue LED. Creates another semaphore
-  *			 to start/stop the LED Flashing, using the onboard NP2 pushbutton.
+  * @file    stage5/task2/main.c 
+  * @author  Mani Batra – 42952556
+  * @date    024032015
+  * @brief   A ripple based counter using two semaphores
   *
-  *			 Press the NP2 pushbutton to start and stop LED flashing (run kermusb).
+  *			 Press the NP2 pushbutton to start and stop the counter.
   *	
   *			 NOTE: THE IDLE TASK MUST BE DISABLED. 
   ******************************************************************************
