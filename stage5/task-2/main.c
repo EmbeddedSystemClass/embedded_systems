@@ -19,6 +19,7 @@
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
 #include "s4295255_ledbar.h"
+#include "s4295255_button.h"
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
@@ -31,8 +32,10 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-SemaphoreHandle_t Semaphore1;	/* Semaphore for LED flasher */
-SemaphoreHandle_t Semaphore2;	/* Semaphore for pushbutton interrupt */
+SemaphoreHandle_t Semaphore1;	/* Semaphore for first overflow */
+SemaphoreHandle_t Semaphore2;	/* Semaphore for second overflow */
+SemaphoreHandle_t PBSemaphore; /* Semaphore for pushbutton interrupt */
+
 uint8_t counter1 = 0;
 uint8_t counter2 = 0;
 uint8_t counter3 = 0;
@@ -74,6 +77,7 @@ int main( void ) {
 	/* Create Semaphores */
 	Semaphore1 = xSemaphoreCreateBinary();
 	Semaphore2 = xSemaphoreCreateBinary();
+	PBSemaphore = xSemaphoreCreateBinary();
 
 	/* Start the scheduler.
 
@@ -95,31 +99,50 @@ int main( void ) {
   * @retval None
   */
 void Task1( void ) {
-		
+	
+	uint8_t on = 0; // to toggle the timer on and off
 	
 	for (;;) {
 
-		s4295255_ledbar_set(0);
-		s4295255_ledbar_set(display());
-		counter1++;
-		counter1 = (counter1 % 10);
 
-		//display on the LED BAR 
-		
-		
-		//debug_printf("displayed on LED : %x\n\r", display() << 2);
+		if( PBSemaphore != NULL) {
+	
+			if( xSemaphoreTake( PBSemaphore, 10 ) == pdTRUE) {
 
-		if(counter1 == 0) {
-
-			if (Semaphore1 != NULL) {	/* Check if semaphore exists */
-
-				/* Give LED Semaphore */
-				xSemaphoreGive(Semaphore1);
-				//debug_printf("Giving Semaphore1 so that task 2 can increment\n\r");
+				on = ~on & 0x01;
+	
 			}
+		}
+
+		if(on) {
+			s4295255_ledbar_set(0);
+			s4295255_ledbar_set(display());
+			counter1++;
+			counter1 = (counter1 % 10);
+
+			//display on the LED BAR 
+		
+		
+			//debug_printf("displayed on LED : %x\n\r", display() << 2);
+
+			if(counter1 == 0) {
+
+				if (Semaphore1 != NULL) {	/* Check if semaphore exists */
+
+					/* Give LED Semaphore */
+					xSemaphoreGive(Semaphore1);
+					//debug_printf("Giving Semaphore1 so that task 2 can increment\n\r");
+				}
+
+			}
+		} else {
+
+			counter1 = 0;
+			counter2 = 0;
+			counter3 = 0;
+			s4295255_ledbar_set(0);
 
 		}
-		
 		
 		/* Wait for 100ms = 0.1second */
 		vTaskDelay(100);
@@ -224,7 +247,7 @@ uint16_t display() {
 
 		uint16_t display = (D9 << 9) | (D8 << 8) | (D7 << 7) | (D6 << 6) | (D5 << 5) | (D4 << 4) | (D3 << 3) | (D2 << 2) | (D1 << 1) | D0 ;
 		
-		debug_printf("display : %x , counter 1 : %d, counter 2 : %d, counter 3 : %d\n ", display, counter1, counter2, counter3);
+		//debug_printf("display : %x , counter 1 : %d, counter 2 : %d, counter 3 : %d\n ", display, counter1, counter2, counter3);
 		return display;
 
 }
@@ -245,9 +268,35 @@ static void Hardware_init( void ) {
 	BRD_LEDInit();				//Initialise Blue LED
 	BRD_LEDOff();				//Turn off Blue LED
 
+	s4295255_pushbutton_init();
+
 
 	portENABLE_INTERRUPTS();	//Enable interrupts
 
+}
+
+/**
+  * @brief  Pushbutton Interrupt handler. Gives PB Semaphore
+  * @param  None.
+  * @retval None
+  */
+void exti_pb_interrupt_handler(void) {
+	
+	BaseType_t xHigherPriorityTaskWoken;
+	 
+    /* Is it time for another Task() to run? */
+    xHigherPriorityTaskWoken = pdFALSE;
+
+	/* Check if Pushbutton external interrupt has occured */
+  	HAL_GPIO_EXTI_IRQHandler(BRD_PB_PIN);				//Clear D0 pin external interrupt flag
+    	
+	if (PBSemaphore != NULL) {	/* Check if semaphore exists */
+		xSemaphoreGiveFromISR( PBSemaphore, &xHigherPriorityTaskWoken );		/* Give PB Semaphore from ISR*/
+		debug_printf("Triggered \n\r");    //Print press count value
+	}
+    
+	/* Perform context switching, if required. */
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 /**

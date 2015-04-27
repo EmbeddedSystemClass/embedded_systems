@@ -27,7 +27,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define NOT_PROJECT   //uncomment when not using in project
+//#define NOT_PROJECT   //uncomment when not using in project, stage 5
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 

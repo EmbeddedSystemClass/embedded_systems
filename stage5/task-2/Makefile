@@ -18,6 +18,7 @@ SRCS += $(STDPERPH_PATH)/src/*.c $(COMMON_PATH)/*.c
 SRCS += $(USBCORE_PATH)/Src/*.c $(USBCDC_PATH)/Src/*.c $(VCP_PATH)/src/*.c
 SRCS += $(FREERTOS_PATH)/*.c $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/*.c $(FREERTOS_PATH)/portable/MemMang/heap_1.c
 SRCS += $(MYLIB)/s4295255_ledbar.c
+SRCS += $(MYLIB)/s4295255_button.c
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
 
 ###################################################
