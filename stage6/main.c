@@ -19,11 +19,15 @@
 #include "debug_printf.h"
 #include <string.h>
 #include <stdio.h>
+#include "s4295255_laser.h"
+#include "s4295255_cli.h"
+#include "common.h"
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "semphr.h"
 
 #include "FreeRTOS_CLI.h"
 
@@ -33,24 +37,27 @@
 /* Private function prototypes -----------------------------------------------*/
 void Hardware_init();
 void ApplicationIdleHook( void ); /* The idle hook is used to blink the Blue 'Alive LED' every second */
-void LED_Task( void );
+void Laser_Task( void );
 void CLI_Task(void);
-static BaseType_t prvEchoCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 
 /* Private variables ---------------------------------------------------------*/
-CLI_Command_Definition_t xEcho = {	/* Structure that defines the "echo" command line command. */
-	"echo",
-	"echo: Echo the input.\r\n",
-	prvEchoCommand,
+
+SemaphoreHandle_t LaserOnSemaphore;
+SemaphoreHandle_t LaserOffSemaphore;
+
+CLI_Command_Definition_t xLaser = {	/* Structure that defines the "laser" command line command. */
+	"laser",
+	"laser <on/off> : Turn the laser on/off.\r\n",
+	prvLaserCommand,
 	1
 };
 
 /* Task Priorities ------------------------------------------------------------*/
-#define mainLED_PRIORITY					( tskIDLE_PRIORITY + 1 )
+#define mainLASER_PRIORITY					( tskIDLE_PRIORITY + 1 )
 #define mainCLI_PRIORITY					( tskIDLE_PRIORITY + 2 )
 
 /* Task Stack Allocations -----------------------------------------------------*/
-#define mainLED_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
+#define mainLASER_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
 #define mainCLI_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 3 )
 
 /**
@@ -64,11 +71,16 @@ int main( void ) {
 	Hardware_init();
 	
 	/* Start the tasks to flash the LED and start the CLI. */
-    xTaskCreate( (void *) &LED_Task, (const signed char *) "LED", mainLED_TASK_STACK_SIZE, NULL, mainLED_PRIORITY, NULL );
+    xTaskCreate( (void *) &Laser_Task, (const signed char *) "LASER", mainLASER_TASK_STACK_SIZE, NULL, mainLASER_PRIORITY, NULL );
 	xTaskCreate( (void *) &CLI_Task, (const signed char *) "CLI", mainCLI_TASK_STACK_SIZE, NULL, mainCLI_PRIORITY, NULL );
+
+	//Create Semaphore
+	LaserOnSemaphore = xSemaphoreCreateBinary();
+	LaserOffSemaphore = xSemaphoreCreateBinary();
+	
 	
 	/* Register CLI commands */
-	FreeRTOS_CLIRegisterCommand(&xEcho);
+	FreeRTOS_CLIRegisterCommand(&xLaser);
 
 	/* Start the scheduler.
 
@@ -89,17 +101,45 @@ int main( void ) {
   * @param  None
   * @retval None
   */
-void LED_Task( void ) {
+void Laser_Task( void ) {
 
 	BRD_LEDOff();
+
 
 	for (;;) {
 
 		/* Toggle LED */
 		BRD_LEDToggle();
 
-		/* Delay the task for 1000ms */
-		vTaskDelay(1000);
+		if (LaserOnSemaphore != NULL) {	/* Check if semaphore exists */
+	
+			/* See if we can obtain the Laser semaphore. If the semaphore is not available
+          	 wait 10 ticks to see if it becomes free. */
+			if ( xSemaphoreTake( LaserOnSemaphore, 10 ) == pdTRUE ) {
+
+				//turn on the laser
+				//debug_printf("got the semaphore");
+				s4295255_laser_on();
+
+			}
+
+		}
+
+
+		if (LaserOffSemaphore != NULL) {	/* Check if semaphore exists */
+	
+			/* See if we can obtain the Laser semaphore. If the semaphore is not available
+          	 wait 10 ticks to see if it becomes free. */
+			if ( xSemaphoreTake( LaserOffSemaphore, 10 ) == pdTRUE ) {
+
+				//turn off the laser
+				s4295255_laser_off();
+
+			}
+
+		}
+		/* Delay the task for 50ms */
+		vTaskDelay(50);
 
 	}
 }
@@ -191,26 +231,6 @@ void CLI_Task(void) {
 	}
 }
 
-/**
-  * @brief  Echo Command.
-  * @param  writebuffer, writebuffer length and command strength
-  * @retval None
-  */
-static BaseType_t prvEchoCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ) {
-
-	long lParam_len; 
-	const char *cCmd_string;
-
-	/* Get parameters from command string */
-	cCmd_string = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParam_len);
-
-	/* Write command echo output string to write buffer. */
-	xWriteBufferLen = sprintf((char *) pcWriteBuffer, "\n\r%s\n\r", cCmd_string);
-
-	/* Return pdFALSE, as there are no more strings to return */
-	/* Only return pdTRUE, if more strings need to be printed */
-	return pdFALSE;
-}
 
 
 /**
@@ -224,6 +244,8 @@ void Hardware_init( void ) {
 
 	BRD_LEDInit();				//Initialise Blue LED
 	BRD_LEDOff();				//Turn off Blue LED
+
+	s4295255_laser_init(); //initialise the laser
 
 	portENABLE_INTERRUPTS();	//Enable interrupts
 }

@@ -26,6 +26,11 @@
 #include "stm32f4xx_hal_conf.h"
 #include "debug_printf.h"
 #include "s4295255_ledbar.h"
+#include "common.h"
+#include <string.h>
+#include <stdio.h>
+#include "s4295255_cli.h"
+
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -34,150 +39,60 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
+
+
 /**
-  * @brief  Initialise the servo
-  * @param  None
+  * @brief  Laser Command.
+  * @param  writebuffer, writebuffer length and command strength
   * @retval None
-
   */
+extern BaseType_t prvLaserCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ) {
 
-ADC_HandleTypeDef AdcHandle;
-ADC_ChannelConfTypeDef AdcChanConfig;
-GPIO_InitTypeDef GPIO_InitStructure;
-TIM_OC_InitTypeDef PWMConfig;
-TIM_HandleTypeDef TIM_Init;
+	long lParam_len; 
+	const char *cCmd_string;
 
-extern void s4295255_servo_init(void) { 
+	/* Get parameters from command string */
+	cCmd_string = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParam_len);
+
+	if(!strcmp(cCmd_string, "on")) {
+	//give the semaphore here
 
 
-	uint16_t PrescalerValue = 0;
+		/* Write command laser output string to write buffer. */
+		xWriteBufferLen = sprintf((char *) pcWriteBuffer, "\n\r%s\n\r", "Laser Turned On");
 
-	BRD_LEDInit();		//Initialise Blue LED
-	BRD_LEDOff();		//Turn off Blue LED
+		if (LaserOnSemaphore != NULL) {	/* Check if semaphore exists */
 
-  	/* Timer 2 clock enable */
-  	__TIM2_CLK_ENABLE();
+			/* Give Laser Semaphore */
+			xSemaphoreGive(LaserOnSemaphore);
+			//debug_printf("Giving On Semaphore\n\r");
+		}
 
-  	/* Enable the D2 Clock */
-  	__BRD_D2_GPIO_CLK();
-	__BRD_D3_GPIO_CLK();
+	} else if(!strcmp(cCmd_string, "off")) {
 
-  	/* Configure the D2 pin with TIM2 output*/
-	GPIO_InitStructure.Pin = BRD_D2_PIN | BRD_D3_PIN ;				//Pin
-  	GPIO_InitStructure.Mode =GPIO_MODE_AF_PP; 		//Set mode to be output alternate
-  	GPIO_InitStructure.Pull = GPIO_NOPULL;			//Enable Pull up, down or no pull resister
-  	GPIO_InitStructure.Speed = GPIO_SPEED_MEDIUM;			//Pin latency
-	GPIO_InitStructure.Alternate = GPIO_AF1_TIM2;	//Set alternate function to be timer 2
-  	HAL_GPIO_Init(BRD_D2_GPIO_PORT, &GPIO_InitStructure);
-	HAL_GPIO_Init(BRD_D3_GPIO_PORT, &GPIO_InitStructure);	//Initialise Pin
 
-	/* Compute the prescaler value. SystemCoreClock = 168000000 - set for 500Khz clock */
-  	PrescalerValue = (uint16_t) ((SystemCoreClock /2) / 500000) - 1;
+		/* Write command laser output string to write buffer. */
+		xWriteBufferLen = sprintf((char *) pcWriteBuffer, "\n\r%s\n\r", "Laser Turned Off");
 
-	/* Configure Timer settings */
-	TIM_Init.Instance = TIM2;					//Enable Timer 2
-  	TIM_Init.Init.Period = 2*500000/100;			//Set for 20ms (50Hz) period
-  	TIM_Init.Init.Prescaler = PrescalerValue;	//Set presale value
-  	TIM_Init.Init.ClockDivision = 0;			//Set clock division
-	TIM_Init.Init.RepetitionCounter = 0; 		// Set Reload Value
-  	TIM_Init.Init.CounterMode = TIM_COUNTERMODE_UP;	//Set timer to count up.
-	
-	/* PWM Mode configuration for Channel 4 - set pulse width*/
-	PWMConfig.OCMode       = TIM_OCMODE_PWM1;	//Set PWM MODE (1 or 2 - NOT CHANNEL)
+		//give the semaphore here
+		if (LaserOffSemaphore != NULL) {	/* Check if semaphore exists */
 
-    PWMConfig.OCPolarity   = TIM_OCPOLARITY_HIGH;
-    PWMConfig.OCNPolarity  = TIM_OCNPOLARITY_HIGH;
-    PWMConfig.OCFastMode   = TIM_OCFAST_DISABLE;
-    PWMConfig.OCIdleState  = TIM_OCIDLESTATE_RESET;
-    PWMConfig.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+			/* Give Laser Semaphore */
+			xSemaphoreGive(LaserOffSemaphore);
+			//debug_printf("Giving Semaphore1 so that task 2 can increment\n\r");
+		}
 
-	HAL_TIM_PWM_Init(&TIM_Init);	
+	} else {
 
-	
 
-}
+		/* Write command laser output string to write buffer. */
+		xWriteBufferLen = sprintf((char *) pcWriteBuffer, "\n\r%s\n\r", "Invalid laser parameter");
 
-/**
-  * @brief Set the servo pan to an angle
-  *         
-  *          
-  *
-  * @param  angle
-  * @retval X, Y or Z value
-  */
-extern void s4295255_servo_setangle(int angle) {
-
-	//converting the angle range -90 to +90 TO 0 to 180
-
-	int p_angle;
-
-	p_angle = 90 + angle;
-
-	if(p_angle < 15) {
-
-		p_angle = 15;
 
 	}
-
-	if(p_angle > 175) {
-
-		p_angle = 175;
-
-	}
-
-	//get the required pulse width
-	PWMConfig.Pulse = ((1/90.0*p_angle) + 0.45)*500000/1000;	
-	/* Enable PWM for Timer 2, channel 4 */
-	//HAL_TIM_PWM_Init(&TIM_Init);	
-	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_4);	
-
-
-		/* Start PWM */
-	HAL_TIM_PWM_Start(&TIM_Init, TIM_CHANNEL_4);
-
-}
-
-
-/**
-  * @brief Set the servo tilt to an angle
-
-  *         
-  *          
-  *
-  * @param  angle
-
-  * @retval X, Y or Z value
-  */
-extern void s4295255_servo_settiltangle(int angle) {
-
-	//converting the angle range -90 to +90 TO 0 to 180
-
-	int t_angle;
-
-	t_angle = 90 + angle;
-
-	if(t_angle < 15) {
-
-		t_angle = 15;
-
-	}
-
-	if(t_angle > 175) {
-
-		t_angle = 175;
-
-	}
-
-	//get the required pulse width
-	PWMConfig.Pulse = ((1/90.0*t_angle) + 0.45)*500000/1000;	
-	/* Enable PWM for Timer 2, channel 4 */
-
-	HAL_TIM_PWM_ConfigChannel(&TIM_Init, &PWMConfig, TIM_CHANNEL_3);	
-
-
-		/* Start PWM */
-	HAL_TIM_PWM_Start(&TIM_Init, TIM_CHANNEL_3);
-
+	/* Return pdFALSE, as there are no more strings to return */
+	/* Only return pdTRUE, if more strings need to be printed */
+	return pdFALSE;
 }
 
 

@@ -19,19 +19,20 @@
  * 3. 23/3/2015 - Added functionality to the set angle function
  */
 
-#ifndef S4295255_SERVO_H
-#define S4295255_SERVO_H
+#ifndef S4295255_CLI_H
+#define S4295255_CLI_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "FreeRTOS_CLI.h"
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+extern CLI_Command_Definition_t xLaser;
 
 /* Private function prototypes -----------------------------------------------*/
 
-extern void s4295255_servo_init(void);
-extern void s4295255_servo_setangle(int angle);
-extern void s4295255_servo_settiltangle(int angle);
+extern BaseType_t prvLaserCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 #endif
 

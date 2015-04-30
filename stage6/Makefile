@@ -1,5 +1,6 @@
 # put your *.o targets here, make should handle the rest!
 
+MYLIB=$(NP2_ROOT)/../../repo/mylib
 NP2_PATH=$(NP2_ROOT)/src/boards/netduinoplus2
 VCP_PATH=$(NP2_ROOT)/src/boards/netduinoplus2/usb/vcp
 USBCORE_PATH=$(NP2_ROOT)/src/Libraries/STM32_USB_Device_Library/Core
@@ -18,6 +19,8 @@ SRCS += $(STDPERPH_PATH)/src/*.c $(COMMON_PATH)/*.c
 SRCS += $(USBCORE_PATH)/Src/*.c $(USBCDC_PATH)/Src/*.c $(VCP_PATH)/src/*.c
 SRCS += $(FREERTOS_PATH)/*.c $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/*.c $(FREERTOS_PATH)/portable/MemMang/heap_1.c
 SRCS += $(CLI_PATH)/*.c
+SRCS += $(MYLIB)/s4295255_laser.c
+SRCS += $(MYLIB)/s4295255_cli.c
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
 
 ###################################################
@@ -43,6 +46,7 @@ CFLAGS += -I$(CLI_PATH)
 CFLAGS += -DENABLE_VCP #Enable USB VCP for debug_printf
 CFLAGS += -DENABLE_FRVCP #Enable USB VCP for debug_printf with FreeRTOS
 #CFLAGS += -DENABLE_DEBUG_UART	#Enable UART4 for debug printf
+CFLAGS += -I$(MYLIB)
 
 SRCS += $(NP2_PATH)/startup_STM32F40x.s # add startup file to build
 
