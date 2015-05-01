@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "s4295255_laser.h"
+#include "s4295255_servo.h"
 #include "s4295255_cli.h"
 #include "common.h"
 
@@ -38,12 +39,19 @@
 void Hardware_init();
 void ApplicationIdleHook( void ); /* The idle hook is used to blink the Blue 'Alive LED' every second */
 void Laser_Task( void );
+void Pan_Task( void );
+void Tilt_Task( void );
 void CLI_Task(void);
 
 /* Private variables ---------------------------------------------------------*/
 
 SemaphoreHandle_t LaserOnSemaphore;
 SemaphoreHandle_t LaserOffSemaphore;
+
+int angle = 0;
+
+QueueHandle_t PanMessageQueue;	/* Queue used */
+QueueHandle_t TiltMessageQueue;	/* Queue used */
 
 CLI_Command_Definition_t xLaser = {	/* Structure that defines the "laser" command line command. */
 	"laser",
@@ -52,13 +60,59 @@ CLI_Command_Definition_t xLaser = {	/* Structure that defines the "laser" comman
 	1
 };
 
+CLI_Command_Definition_t xPan = {	/* Structure that defines the "pan" command line command. */
+	"pan",
+	"pan <angle> : Pan the servo by specified angle.\r\n",
+	prvPanCommand,
+	1
+};
+
+CLI_Command_Definition_t xTilt = {	/* Structure that defines the "tilt" command line command. */
+	"tilt",
+	"tilt <angle> : Tilt the servo by specified angle.\r\n",
+	prvTiltCommand,
+	1
+};
+
+CLI_Command_Definition_t xUp = {	/* Structure that defines the "up" command line command. */
+	"up",
+	"up : Tilt the servo by +5 degrees.\r\n",
+	prvUpCommand,
+	0
+};
+
+CLI_Command_Definition_t xDown = {	/* Structure that defines the "down" command line command. */
+	"down",
+	"down : Tilt the servo by -5 degrees.\r\n",
+	prvDownCommand,
+	0
+};
+
+CLI_Command_Definition_t xLeft = {	/* Structure that defines the "left" command line command. */
+	"left",
+	"left : Pan the servo by +5 degrees.\r\n",
+	prvLeftCommand,
+	0
+};
+
+CLI_Command_Definition_t xRight = {	/* Structure that defines the "right" command line command. */
+	"right",
+	"right : Tilt the servo by -5 degrees.\r\n",
+	prvRightCommand,
+	0
+};
+
 /* Task Priorities ------------------------------------------------------------*/
 #define mainLASER_PRIORITY					( tskIDLE_PRIORITY + 1 )
+#define mainPAN_PRIORITY					( tskIDLE_PRIORITY + 1 )
+#define mainTILT_PRIORITY					( tskIDLE_PRIORITY + 1 )
 #define mainCLI_PRIORITY					( tskIDLE_PRIORITY + 2 )
 
 /* Task Stack Allocations -----------------------------------------------------*/
 #define mainLASER_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
-#define mainCLI_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 3 )
+#define mainPAN_TASK_STACK_SIZE			( configMINIMAL_STACK_SIZE * 2 )
+#define mainTILT_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
+#define mainCLI_TASK_STACK_SIZE			( configMINIMAL_STACK_SIZE * 3 )
 
 /**
   * @brief  Starts all the other tasks, then starts the scheduler.
@@ -72,15 +126,25 @@ int main( void ) {
 	
 	/* Start the tasks to flash the LED and start the CLI. */
     xTaskCreate( (void *) &Laser_Task, (const signed char *) "LASER", mainLASER_TASK_STACK_SIZE, NULL, mainLASER_PRIORITY, NULL );
+    xTaskCreate( (void *) &Pan_Task, (const signed char *) "PAN", mainPAN_TASK_STACK_SIZE, NULL, mainPAN_PRIORITY, NULL );
+    xTaskCreate( (void *) &Tilt_Task, (const signed char *) "TILT", mainTILT_TASK_STACK_SIZE, NULL, mainTILT_PRIORITY, NULL );
 	xTaskCreate( (void *) &CLI_Task, (const signed char *) "CLI", mainCLI_TASK_STACK_SIZE, NULL, mainCLI_PRIORITY, NULL );
 
 	//Create Semaphore
 	LaserOnSemaphore = xSemaphoreCreateBinary();
 	LaserOffSemaphore = xSemaphoreCreateBinary();
-	
+
+
+
 	
 	/* Register CLI commands */
 	FreeRTOS_CLIRegisterCommand(&xLaser);
+	FreeRTOS_CLIRegisterCommand(&xPan);
+	FreeRTOS_CLIRegisterCommand(&xTilt);
+	FreeRTOS_CLIRegisterCommand(&xUp);
+	FreeRTOS_CLIRegisterCommand(&xDown);
+	FreeRTOS_CLIRegisterCommand(&xLeft);
+	FreeRTOS_CLIRegisterCommand(&xRight);
 
 	/* Start the scheduler.
 
@@ -143,6 +207,69 @@ void Laser_Task( void ) {
 
 	}
 }
+
+
+void Pan_Task( void ) {
+
+	struct Message RecvMessage;
+	
+	BRD_LEDOff();	
+
+	for (;;) {
+
+		if (PanMessageQueue != NULL) {	/* Check if queue exists */
+	
+
+			/* Check for item received - block atmost for 10 ticks */
+			if (xQueueReceive( PanMessageQueue, &RecvMessage, 10 )) {
+
+				/* display received item */
+				debug_printf("Received: %s - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number);
+
+				angle = angle + RecvMessage.angle;
+				s4295255_servo_setangle(angle);
+				
+            	/* Toggle LED */
+				BRD_LEDToggle();
+        	}
+		}	
+
+		/* Delay for 10ms */
+		vTaskDelay(50);
+	}
+}
+
+
+void Tilt_Task( void ) {
+
+	struct Message RecvMessage;
+	
+	BRD_LEDOff();	
+
+	for (;;) {
+
+		if (TiltMessageQueue != NULL) {	/* Check if queue exists */
+	
+
+			/* Check for item received - block atmost for 10 ticks */
+			if (xQueueReceive( TiltMessageQueue, &RecvMessage, 10 )) {
+
+				/* display received item */
+				debug_printf("Received: %s - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number);
+
+				angle = angle + RecvMessage.angle;
+				s4295255_servo_settiltangle(angle);
+				
+            	/* Toggle LED */
+				BRD_LEDToggle();
+        	}
+		}	
+
+		/* Delay for 50ms */
+		vTaskDelay(50);
+	}
+}
+
 
 
 /**
@@ -246,6 +373,9 @@ void Hardware_init( void ) {
 	BRD_LEDOff();				//Turn off Blue LED
 
 	s4295255_laser_init(); //initialise the laser
+	s4295255_servo_init();
+	s4295255_servo_setangle(0);
+	s4295255_servo_settiltangle(0);
 
 	portENABLE_INTERRUPTS();	//Enable interrupts
 }

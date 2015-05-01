@@ -21,6 +21,7 @@ SRCS += $(FREERTOS_PATH)/*.c $(FREERTOS_PATH)/portable/GCC/ARM_CM4F/*.c $(FREERT
 SRCS += $(CLI_PATH)/*.c
 SRCS += $(MYLIB)/s4295255_laser.c
 SRCS += $(MYLIB)/s4295255_cli.c
+SRCS += $(MYLIB)/s4295255_servo.c
 # all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
 
 ###################################################

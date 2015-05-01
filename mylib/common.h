@@ -27,13 +27,20 @@
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "queue.h"
 /* Private typedef -----------------------------------------------------------*/
+struct Message {	/* Message consists of sequence number and payload string */
+	int Sequence_Number;
+	int angle;
+};
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-
+QueueHandle_t PanMessageQueue;	/* Queue used */
+QueueHandle_t TiltMessageQueue;	/* Queue used */
 extern SemaphoreHandle_t LaserOnSemaphore; /* Semaphore for switching laser on  */
 extern SemaphoreHandle_t LaserOffSemaphore; /* Semaphore for switching laser off */
+
 
 /* Private function prototypes -----------------------------------------------*/
 

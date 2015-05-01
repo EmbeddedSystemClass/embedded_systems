@@ -30,9 +30,21 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 extern CLI_Command_Definition_t xLaser;
+extern CLI_Command_Definition_t xPan;
+extern CLI_Command_Definition_t xTilt;
+extern CLI_Command_Definition_t xLeft;
+extern CLI_Command_Definition_t xRight;
+extern CLI_Command_Definition_t xUp;
+extern CLI_Command_Definition_t xDown;
 
 /* Private function prototypes -----------------------------------------------*/
 
 extern BaseType_t prvLaserCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvPanCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvTiltCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvLeftCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvRightCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvUpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvDownCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 #endif
 
