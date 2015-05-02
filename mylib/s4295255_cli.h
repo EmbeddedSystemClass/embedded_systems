@@ -1,22 +1,30 @@
 /**   
  ******************************************************************************   
- * @file    mylib/s4295255_servo.h  
+ * @file    mylib/s4295255_cli.c    
  * @author  Mani Batra – 42952556   
  * @date    12032015   
- * @brief  Servo peripheral driver   
+ * @brief   Commands registered with CLI   
+ *	       
  *
  *			
  ******************************************************************************   
  *     EXTERNAL FUNCTIONS
  ******************************************************************************
- * s4295255_servo_init() – intialise servo
- * s4295255_servo_setangle(intangle) – set the servo to an angle
+ * BaseType_t prvLaserCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvPanCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvTiltCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvUpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvDownCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvLeftCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvRightCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+ * BaseType_t prvChallengeCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString )
+
  ******************************************************************************   
  *     REVISION HISTORY
  ******************************************************************************
- * 1. 19/3/2015 - Created
- * 2. 19/3/2015 – Added functionality to init function. 
- * 3. 23/3/2015 - Added functionality to the set angle function
+ * 1. 30/4/2015 - Created
+ * 2. 2/5/2015 – Added functionality to complete design tasks and challenge. 
+ *
  */
 
 #ifndef S4295255_CLI_H
@@ -36,6 +44,7 @@ extern CLI_Command_Definition_t xLeft;
 extern CLI_Command_Definition_t xRight;
 extern CLI_Command_Definition_t xUp;
 extern CLI_Command_Definition_t xDown;
+extern CLI_Command_Definition_t xChallenge;
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -46,5 +55,6 @@ extern BaseType_t prvLeftCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
 extern BaseType_t prvRightCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 extern BaseType_t prvUpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 extern BaseType_t prvDownCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
+extern BaseType_t prvChallengeCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString );
 #endif
 

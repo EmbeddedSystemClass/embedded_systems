@@ -41,12 +41,14 @@ void ApplicationIdleHook( void ); /* The idle hook is used to blink the Blue 'Al
 void Laser_Task( void );
 void Pan_Task( void );
 void Tilt_Task( void );
+void Challenge_Task( void );
 void CLI_Task(void);
 
 /* Private variables ---------------------------------------------------------*/
 
 SemaphoreHandle_t LaserOnSemaphore;
 SemaphoreHandle_t LaserOffSemaphore;
+SemaphoreHandle_t ChallengeSemaphore;
 
 int pan_angle = 0;
 int tilt_angle = 0;
@@ -103,16 +105,25 @@ CLI_Command_Definition_t xRight = {	/* Structure that defines the "right" comman
 	0
 };
 
+CLI_Command_Definition_t xChallenge = {	/* Structure that defines the "challenge" command line command. */
+	"challenge",
+	"challenge : Traces a square via laser.\r\n",
+	prvChallengeCommand,
+	0
+};
+
 /* Task Priorities ------------------------------------------------------------*/
 #define mainLASER_PRIORITY					( tskIDLE_PRIORITY + 1 )
 #define mainPAN_PRIORITY					( tskIDLE_PRIORITY + 1 )
 #define mainTILT_PRIORITY					( tskIDLE_PRIORITY + 1 )
+#define mainCHALLENGE_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainCLI_PRIORITY					( tskIDLE_PRIORITY + 2 )
 
 /* Task Stack Allocations -----------------------------------------------------*/
 #define mainLASER_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
 #define mainPAN_TASK_STACK_SIZE			( configMINIMAL_STACK_SIZE * 2 )
 #define mainTILT_TASK_STACK_SIZE		( configMINIMAL_STACK_SIZE * 2 )
+#define mainCHALLENGE_TASK_STACK_SIZE	( configMINIMAL_STACK_SIZE * 2 )
 #define mainCLI_TASK_STACK_SIZE			( configMINIMAL_STACK_SIZE * 3 )
 
 /**
@@ -129,11 +140,14 @@ int main( void ) {
     xTaskCreate( (void *) &Laser_Task, (const signed char *) "LASER", mainLASER_TASK_STACK_SIZE, NULL, mainLASER_PRIORITY, NULL );
     xTaskCreate( (void *) &Pan_Task, (const signed char *) "PAN", mainPAN_TASK_STACK_SIZE, NULL, mainPAN_PRIORITY, NULL );
     xTaskCreate( (void *) &Tilt_Task, (const signed char *) "TILT", mainTILT_TASK_STACK_SIZE, NULL, mainTILT_PRIORITY, NULL );
+	xTaskCreate( (void *) &Challenge_Task, (const signed char *) "CHALLENGE", mainCHALLENGE_TASK_STACK_SIZE, NULL, mainCHALLENGE_PRIORITY, NULL );
 	xTaskCreate( (void *) &CLI_Task, (const signed char *) "CLI", mainCLI_TASK_STACK_SIZE, NULL, mainCLI_PRIORITY, NULL );
 
 	//Create Semaphore
 	LaserOnSemaphore = xSemaphoreCreateBinary();
 	LaserOffSemaphore = xSemaphoreCreateBinary();
+	ChallengeSemaphore = xSemaphoreCreateBinary();
+
 
 
 
@@ -146,6 +160,7 @@ int main( void ) {
 	FreeRTOS_CLIRegisterCommand(&xDown);
 	FreeRTOS_CLIRegisterCommand(&xLeft);
 	FreeRTOS_CLIRegisterCommand(&xRight);
+	FreeRTOS_CLIRegisterCommand(&xChallenge);
 
 	/* Start the scheduler.
 
@@ -234,7 +249,7 @@ void Pan_Task( void ) {
 				s4295255_servo_setangle(pan_angle);
 
 				/* display received item */
-				debug_printf("Received: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, pan_angle);
+				debug_printf("Received pan: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, pan_angle);
 				
             	/* Toggle LED */
 				BRD_LEDToggle();
@@ -245,6 +260,8 @@ void Pan_Task( void ) {
 		vTaskDelay(50);
 	}
 }
+
+
 
 
 void Tilt_Task( void ) {
@@ -271,7 +288,7 @@ void Tilt_Task( void ) {
 				s4295255_servo_settiltangle(tilt_angle);
 
 				/* display received item */
-				debug_printf("Received: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, tilt_angle);
+				debug_printf("Received tilt: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, tilt_angle);
 				
             	/* Toggle LED */
 				BRD_LEDToggle();
@@ -279,6 +296,128 @@ void Tilt_Task( void ) {
 		}	
 
 		/* Delay for 50ms */
+		vTaskDelay(50);
+	}
+}
+
+void Challenge_Task( void ) {
+
+	struct Message SendMessage;
+
+	int sequence = 0;
+
+	if(TiltMessageQueue == NULL) {
+		
+		TiltMessageQueue = xQueueCreate(20, sizeof(SendMessage));		/* Create queue of length 10 Message items */
+
+	}
+
+	if(PanMessageQueue == NULL) {
+		
+		PanMessageQueue = xQueueCreate(20, sizeof(SendMessage));		/* Create queue of length 10 Message items */
+
+	}
+
+	if (LaserOnSemaphore != NULL) {	/* Check if semaphore exists */
+
+			/* Give Laser Semaphore */
+			xSemaphoreGive(LaserOnSemaphore);
+			//debug_printf("Giving On Semaphore\n\r");
+	}
+	
+	BRD_LEDOff();	
+
+	for (;;) {
+
+		if (ChallengeSemaphore != NULL) {	/* Check if queue exists */
+	
+			if ( xSemaphoreTake( ChallengeSemaphore, 10 ) == pdTRUE ) {
+
+				int i = 0;
+
+				for(i = 0; i < 5; i++){
+
+					SendMessage.Sequence_Number = sequence++;
+
+					SendMessage.angle = -2;
+
+					if (TiltMessageQueue != NULL) {	/* Check if queue exists */
+
+			/*Send message to the front of the queue - wait atmost 10 ticks */
+						if( xQueueSendToFront(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
+							debug_printf("Failed to post the message, after 10 ticks.\n\r");
+						}
+					}
+
+				}
+
+				while(xQueuePeek(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdFAIL){
+					vTaskDelay(1);
+				}
+
+				for(i = 0; i < 5; i++){
+
+					SendMessage.Sequence_Number = sequence++;
+
+					SendMessage.angle = -2;
+
+					if (PanMessageQueue != NULL) {	/* Check if queue exists */
+
+			/*Send message to the front of the queue - wait atmost 10 ticks */
+						if( xQueueSendToFront(PanMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
+							debug_printf("Failed to post the message, after 10 ticks.\n\r");
+						}
+					}
+
+				}
+
+				while(xQueuePeek(PanMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdFAIL){
+					vTaskDelay(1);
+				}
+
+
+				for(i = 0; i < 5; i++){
+
+					SendMessage.Sequence_Number = sequence++;
+
+					SendMessage.angle = 2;
+
+					if (TiltMessageQueue != NULL) {	/* Check if queue exists */
+
+			/*Send message to the front of the queue - wait atmost 10 ticks */
+						if( xQueueSendToFront(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
+							debug_printf("Failed to post the message, after 10 ticks.\n\r");
+						}
+					}
+
+				}
+
+				while(xQueuePeek(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdFAIL){
+					vTaskDelay(1);
+				}
+
+				for(i = 0; i < 5; i++){
+
+					SendMessage.Sequence_Number = sequence++;
+
+					SendMessage.angle = 2;
+
+					if (PanMessageQueue != NULL) {	/* Check if queue exists */
+
+			/*Send message to the front of the queue - wait atmost 10 ticks */
+						if( xQueueSendToFront(PanMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
+							debug_printf("Failed to post the message, after 10 ticks.\n\r");
+						}
+					}
+
+				}
+
+
+			}
+			
+		}	
+
+		/* Delay for 10ms */
 		vTaskDelay(50);
 	}
 }

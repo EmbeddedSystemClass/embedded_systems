@@ -16,7 +16,7 @@
  *     REVISION HISTORY
  ******************************************************************************
  * 1. 10/4/2015 - Created
- * 
+ * 2. 3/5/2015 - Added semaphore for challenge task
  */
  
  
@@ -40,6 +40,8 @@ QueueHandle_t PanMessageQueue;	/* Queue used */
 QueueHandle_t TiltMessageQueue;	/* Queue used */
 extern SemaphoreHandle_t LaserOnSemaphore; /* Semaphore for switching laser on  */
 extern SemaphoreHandle_t LaserOffSemaphore; /* Semaphore for switching laser off */
+extern SemaphoreHandle_t ChallengeSemaphore;
+
 
 
 /* Private function prototypes -----------------------------------------------*/
