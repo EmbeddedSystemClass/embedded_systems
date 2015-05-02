@@ -126,7 +126,7 @@ extern BaseType_t prvPanCommand(char *pcWriteBuffer, size_t xWriteBufferLen, con
 	}
 
 	
-
+	return pdFALSE;
 	
 
 }
@@ -159,6 +159,7 @@ extern BaseType_t prvTiltCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
 		}
 	}
 
+	return pdFALSE;
 
 }
 
@@ -186,7 +187,7 @@ extern BaseType_t prvLeftCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
 		}
 	}
 
-		
+	return pdFALSE;	
 
 }
 
@@ -212,11 +213,39 @@ extern BaseType_t prvRightCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
 		}
 	}
 
+
+	return pdFALSE;
 	
 }
 
 extern BaseType_t prvUpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ){
 
+	struct Message SendMessage;
+
+	if(TiltMessageQueue == NULL) {
+		
+		TiltMessageQueue = xQueueCreate(10, sizeof(SendMessage));		/* Create queue of length 10 Message items */
+
+	}
+
+	SendMessage.Sequence_Number = sequence++;
+
+	SendMessage.angle = -5;
+
+	if (TiltMessageQueue != NULL) {	/* Check if queue exists */
+
+			/*Send message to the front of the queue - wait atmost 10 ticks */
+		if( xQueueSendToFront(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
+			debug_printf("Failed to post the message, after 10 ticks.\n\r");
+		}
+	}
+
+	return pdFALSE;
+
+}
+
+extern BaseType_t prvDownCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ){
+	
 	struct Message SendMessage;
 
 	if(TiltMessageQueue == NULL) {
@@ -237,30 +266,7 @@ extern BaseType_t prvUpCommand(char *pcWriteBuffer, size_t xWriteBufferLen, cons
 		}
 	}
 
-
-}
-
-extern BaseType_t prvDownCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString ){
-	
-	struct Message SendMessage;
-
-	if(TiltMessageQueue == NULL) {
-		
-		TiltMessageQueue = xQueueCreate(10, sizeof(SendMessage));		/* Create queue of length 10 Message items */
-
-	}
-
-	SendMessage.Sequence_Number = sequence++;
-
-	SendMessage.angle = -5;
-
-	if (TiltMessageQueue != NULL) {	/* Check if queue exists */
-
-			/*Send message to the front of the queue - wait atmost 10 ticks */
-		if( xQueueSendToFront(TiltMessageQueue, ( void * ) &SendMessage, ( portTickType ) 10 ) != pdPASS ) {
-			debug_printf("Failed to post the message, after 10 ticks.\n\r");
-		}
-	}
+	return pdFALSE;
 
 }
 

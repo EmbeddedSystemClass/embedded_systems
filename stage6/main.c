@@ -48,7 +48,8 @@ void CLI_Task(void);
 SemaphoreHandle_t LaserOnSemaphore;
 SemaphoreHandle_t LaserOffSemaphore;
 
-int angle = 0;
+int pan_angle = 0;
+int tilt_angle = 0;
 
 QueueHandle_t PanMessageQueue;	/* Queue used */
 QueueHandle_t TiltMessageQueue;	/* Queue used */
@@ -223,11 +224,17 @@ void Pan_Task( void ) {
 			/* Check for item received - block atmost for 10 ticks */
 			if (xQueueReceive( PanMessageQueue, &RecvMessage, 10 )) {
 
-				/* display received item */
-				debug_printf("Received: %s - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number);
+				
 
-				angle = angle + RecvMessage.angle;
-				s4295255_servo_setangle(angle);
+				pan_angle = pan_angle + RecvMessage.angle;
+
+				if(pan_angle > 70) pan_angle = 70;
+				if(pan_angle < -70) pan_angle = -70;
+
+				s4295255_servo_setangle(pan_angle);
+
+				/* display received item */
+				debug_printf("Received: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, pan_angle);
 				
             	/* Toggle LED */
 				BRD_LEDToggle();
@@ -254,11 +261,17 @@ void Tilt_Task( void ) {
 			/* Check for item received - block atmost for 10 ticks */
 			if (xQueueReceive( TiltMessageQueue, &RecvMessage, 10 )) {
 
-				/* display received item */
-				debug_printf("Received: %s - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number);
+				
 
-				angle = angle + RecvMessage.angle;
-				s4295255_servo_settiltangle(angle);
+				tilt_angle = tilt_angle + RecvMessage.angle;
+
+				if(tilt_angle > 70) tilt_angle = 70;
+				if(tilt_angle < -70) tilt_angle = -70;
+
+				s4295255_servo_settiltangle(tilt_angle);
+
+				/* display received item */
+				debug_printf("Received: %d - %d - %d\n\r", RecvMessage.angle, RecvMessage.Sequence_Number, tilt_angle);
 				
             	/* Toggle LED */
 				BRD_LEDToggle();
